@@ -1,0 +1,33 @@
+node_modules
+dist
+
+# Keep environment variables out of version control
+.env
+
+# Prisma generated client
+app/prisma/generated
+
+# IDE
+.vscode
+.idea
+
+# Coverage
+coverage
+
+# Git worktrees
+.worktrees
+
+CLAUDE.md
+.claude
+
+# Rendered k8s manifests with real secrets (never commit)
+*.rendered.yaml
+
+
+.codex
+.agent
+.agents
+.github/*
+!.github/workflows/
+!.github/actions/
+openspec/
