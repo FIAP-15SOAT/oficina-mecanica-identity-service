@@ -1,0 +1,447 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Tag de uma imagem já publicada no ECR (rollback manual, sem build)
+        required: false
+        type: string
+
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-push-image:
+    name: Build and Push App Image
+    runs-on: ubuntu-latest
+    environment: production
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+    outputs:
+      image_uri: ${{ steps.image_meta.outputs.image_uri }}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6.2.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login_ecr
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2.1.6
+
+      # With `image_tag`, the deploy reuses an already published image and the build is skipped.
+      - name: Set image metadata
+        id: image_meta
+        env:
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+        run: |
+          IMAGE_URI="${{ steps.login_ecr.outputs.registry }}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+          echo "image_uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+      - name: Check requested image exists
+        if: inputs.image_tag != ''
+        env:
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          if ! aws ecr describe-images --repository-name "${ECR_REPOSITORY}" \
+            --image-ids imageTag="${IMAGE_TAG}" --no-cli-pager > /dev/null; then
+            echo "::error::A imagem ${ECR_REPOSITORY}:${IMAGE_TAG} não existe no ECR."
+            exit 1
+          fi
+
+      - name: Build and Push Image
+        if: inputs.image_tag == ''
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ./app
+          push: true
+          tags: |
+            ${{ steps.image_meta.outputs.image_uri }}
+            ${{ steps.login_ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:latest
+          build-args: |
+            DATABASE_URL=${{ vars.PRISMA_GENERATE_DATABASE_URL || 'postgresql://prisma:prisma@localhost:5432/prisma?schema=public' }}
+            SERVICE_VERSION=${{ github.sha }}
+
+  prepare-deploy:
+    name: Prepare Deployment Configuration
+    runs-on: ubuntu-latest
+    # Two 10-minute waits (RDS, then cache) fit; 15 did not.
+    timeout-minutes: 25
+    environment: production
+    needs:
+      - build-push-image
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # The manifests fix namespace and name; the variables drive the migration Job wait, rollout and undo.
+      - name: Check deploy variables match the manifests
+        env:
+          K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+          K8S_DEPLOYMENT_NAME: ${{ vars.K8S_DEPLOYMENT_NAME }}
+        run: |
+          set -euo pipefail
+          if [[ "$(yq -N '.metadata.namespace' k8s/0*.yaml | sort -u)" != "${K8S_NAMESPACE}" ||
+                "$(yq '.metadata.name' k8s/03-identity-deployment.yaml)" != "${K8S_DEPLOYMENT_NAME}" ]]; then
+            echo "::error::K8S_NAMESPACE precisa casar com o namespace de todos os manifests de k8s/, e K8S_DEPLOYMENT_NAME com o nome do Deployment."
+            exit 1
+          fi
+
+      # Fail fast with an explicit cause, before spending an AWS authentication and
+      # a kubectl apply: without these keys, the cluster Secret goes up with empty or
+      # malformed values and the API pod only fails later, in CrashLoopBackOff.
+      - name: Validate required secrets
+        env:
+          STAFF_JWT_PUBLIC_KEY: ${{ secrets.STAFF_JWT_PUBLIC_KEY }}
+          STAFF_JWT_KEY_ID: ${{ secrets.STAFF_JWT_KEY_ID }}
+        run: |
+          if [ -z "${STAFF_JWT_PUBLIC_KEY}" ]; then
+            echo "::error::STAFF_JWT_PUBLIC_KEY não está configurado nos secrets da organização."
+            exit 1
+          fi
+          case "${STAFF_JWT_PUBLIC_KEY}" in
+            *"BEGIN PUBLIC KEY"*) ;;
+            *) echo "::error::STAFF_JWT_PUBLIC_KEY não parece um bloco PEM \"BEGIN PUBLIC KEY\"."; exit 1 ;;
+          esac
+          if [ -z "${STAFF_JWT_KEY_ID}" ]; then
+            echo "::error::STAFF_JWT_KEY_ID não está configurado nos secrets da organização."
+            exit 1
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6.2.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "${{ env.AWS_REGION }}" --name "${{ vars.EKS_CLUSTER_NAME }}"
+
+      - name: Discover and materialize database credentials
+        env:
+          RDS_INSTANCE_IDENTIFIER: ${{ vars.RDS_INSTANCE_IDENTIFIER }}
+        run: |
+          set -euo pipefail
+          : "${RDS_INSTANCE_IDENTIFIER:?RDS_INSTANCE_IDENTIFIER repository variable is required}"
+
+          READY=false
+          for attempt in {1..60}; do
+            RDS_METADATA="$(aws rds describe-db-instances \
+              --db-instance-identifier "${RDS_INSTANCE_IDENTIFIER}" \
+              --query 'DBInstances[0]' --output json --no-cli-pager)"
+            if jq -e '.DBInstanceStatus == "available" and .MasterUserSecret.SecretStatus == "active"' \
+              <<< "${RDS_METADATA}" > /dev/null; then
+              READY=true
+              break
+            fi
+            echo "Waiting for RDS ${RDS_INSTANCE_IDENTIFIER}, attempt=${attempt}/60."
+            sleep 10
+          done
+          if [[ "${READY}" != "true" ]]; then
+            echo "::error::RDS ${RDS_INSTANCE_IDENTIFIER} did not reach available/active before timeout."
+            exit 1
+          fi
+
+          SECRET_ARN="$(jq -er '.MasterUserSecret.SecretArn | select(type == "string" and length > 0)' <<< "${RDS_METADATA}")"
+          SECRET_STRING="$(aws secretsmanager get-secret-value \
+            --secret-id "${SECRET_ARN}" --version-stage AWSCURRENT \
+            --query SecretString --output text --no-cli-pager)"
+          SECRET_MANIFEST="$(yq -o json 'select(.metadata.name == "database-credentials")' k8s/01-secrets.yaml)"
+          RDS_METADATA="${RDS_METADATA}" SECRET_STRING="${SECRET_STRING}" SECRET_MANIFEST="${SECRET_MANIFEST}" node <<'NODE'
+          const { spawnSync } = require('node:child_process');
+          let phase = 'parsing AWS responses';
+          try {
+            const db = JSON.parse(process.env.RDS_METADATA);
+            const credentials = JSON.parse(process.env.SECRET_STRING);
+            phase = 'checking required connection fields';
+            const required = [db.Endpoint?.Address, db.DBName, db.MasterUsername,
+              db.MasterUserSecret?.SecretArn, credentials.username, credentials.password];
+            if (required.some(value => typeof value !== 'string' || !value) ||
+                !Number.isInteger(db.Endpoint?.Port) || db.Endpoint.Port < 1 || db.Endpoint.Port > 65535 ||
+                credentials.username !== db.MasterUsername) throw new Error();
+            const encodedPassword = encodeURIComponent(credentials.password);
+            const url = `postgresql://${encodeURIComponent(credentials.username)}:${encodedPassword}` +
+              `@${db.Endpoint.Address}:${db.Endpoint.Port}/${db.DBName}?schema=public&sslmode=require&uselibpqcompat=true`;
+            const data = Buffer.from(url).toString('base64');
+            for (const value of [credentials.password, encodedPassword, url, data]) {
+              console.log(`::add-mask::${value.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}`);
+            }
+            phase = 'applying database-credentials to Kubernetes';
+            const manifest = JSON.parse(process.env.SECRET_MANIFEST);
+            if (!manifest.data || !('DATABASE_URL' in manifest.data)) throw new Error();
+            manifest.data.DATABASE_URL = data;
+            const applied = spawnSync('kubectl', ['apply', '-f', '-'], { input: JSON.stringify(manifest), encoding: 'utf8' });
+            if (applied.status !== 0) throw new Error();
+            console.log('Database credentials were materialized from RDS metadata and AWSCURRENT.');
+          } catch {
+            console.error(`::error::Database credential materialization failed while ${phase}.`);
+            process.exit(1);
+          }
+          NODE
+
+      - name: Discover and materialize cache credentials
+        env:
+          CACHE_REPLICATION_GROUP_ID: ${{ vars.CACHE_REPLICATION_GROUP_ID }}
+        run: |
+          set -euo pipefail
+          : "${CACHE_REPLICATION_GROUP_ID:?CACHE_REPLICATION_GROUP_ID repository variable is required}"
+
+          # Exits 255 after 40 checks of 15 s; a missing replication group fails with the AWS error.
+          aws elasticache wait replication-group-available --replication-group-id "${CACHE_REPLICATION_GROUP_ID}"
+          ENDPOINT="$(aws elasticache describe-replication-groups \
+            --replication-group-id "${CACHE_REPLICATION_GROUP_ID}" \
+            --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint.[Address,Port]' \
+            --output text --no-cli-pager)"
+          read -r HOST PORT <<< "${ENDPOINT}"
+          if [[ -z "${HOST}" || "${HOST}" == "None" || ! "${PORT}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Cache ${CACHE_REPLICATION_GROUP_ID} sem endpoint primário."
+            exit 1
+          fi
+
+          TOKEN="$(aws secretsmanager get-secret-value \
+            --secret-id "${CACHE_REPLICATION_GROUP_ID}-auth-token" \
+            --query SecretString --output text --no-cli-pager)"
+          echo "::add-mask::${TOKEN}"
+          # Terraform generates the token without punctuation, so the URL needs no encoding.
+          if [[ ! "${TOKEN}" =~ ^[A-Za-z0-9]+$ ]]; then
+            echo "::error::O token do cache não é alfanumérico; a URL precisaria de percent-encoding."
+            exit 1
+          fi
+
+          # The URL travels only through pipes and the environment: never an argument, a file or the log.
+          CACHE_URL_B64="$(printf 'rediss://:%s@%s:%s' "${TOKEN}" "${HOST}" "${PORT}" | base64 -w0)"
+          echo "::add-mask::${CACHE_URL_B64}"
+          export CACHE_URL_B64
+          # shellcheck disable=SC2016 # envsubst receives the variable names literally
+          yq 'select(.metadata.name == "cache-credentials")' k8s/01-secrets.yaml \
+            | envsubst '${CACHE_URL_B64}' \
+            | kubectl apply -f -
+
+      - name: Render and apply application secrets and ConfigMap
+        env:
+          STAFF_JWT_PUBLIC_KEY: ${{ secrets.STAFF_JWT_PUBLIC_KEY }}
+          STAFF_JWT_KEY_ID: ${{ secrets.STAFF_JWT_KEY_ID }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        # Base64 keeps the multiline PEM on one line, so envsubst cannot break the YAML.
+        run: |
+          set -euo pipefail
+          b64() { printf '%s' "$1" | base64 -w0; }
+          STAFF_JWT_PUBLIC_KEY_B64="$(b64 "${STAFF_JWT_PUBLIC_KEY}")"
+          STAFF_JWT_KEY_ID_B64="$(b64 "${STAFF_JWT_KEY_ID}")"
+          echo "::add-mask::${STAFF_JWT_PUBLIC_KEY_B64}"
+          echo "::add-mask::${STAFF_JWT_KEY_ID_B64}"
+          export STAFF_JWT_PUBLIC_KEY_B64 STAFF_JWT_KEY_ID_B64
+          # shellcheck disable=SC2016 # envsubst receives the variable names literally
+          yq 'select(.metadata.name == "jwt-public-keys")' k8s/01-secrets.yaml \
+            | envsubst '${STAFF_JWT_PUBLIC_KEY_B64} ${STAFF_JWT_KEY_ID_B64}' \
+            | kubectl apply -f -
+
+          AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          export MESSAGING_TOPIC_ARN="arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNT_ID}:oficina-events.fifo"
+
+          # shellcheck disable=SC2016 # envsubst receives the variable names literally
+          envsubst '${OTEL_EXPORTER_OTLP_ENDPOINT} ${MESSAGING_TOPIC_ARN}' \
+            < k8s/02-identity-configmap.yaml \
+            > k8s/02-identity-configmap.rendered.yaml
+
+          kubectl apply -f k8s/02-identity-configmap.rendered.yaml
+
+  db-migrate:
+    name: DB Migrate
+    runs-on: ubuntu-latest
+    environment: production
+    needs:
+      - build-push-image
+      - prepare-deploy
+    # A rollback image would run its older migrations over the newer schema.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch') &&
+      inputs.image_tag == ''
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6.2.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "${{ env.AWS_REGION }}" --name "${{ vars.EKS_CLUSTER_NAME }}"
+
+      - name: Apply DB migration Job
+        id: db_job
+        run: |
+          JOB_NAME="db-migrate-${{ github.run_id }}-${{ github.run_attempt }}"
+          IMAGE_URI="${{ needs.build-push-image.outputs.image_uri }}"
+
+          echo "job_name=${JOB_NAME}" >> "$GITHUB_OUTPUT"
+
+          RENDERED="$(sed -e "s|JOB_NAME_PLACEHOLDER|${JOB_NAME}|g" \
+                          -e "s|IMAGE_URI_PLACEHOLDER|${IMAGE_URI}|g" \
+                        k8s/00-db-migrate-job.yaml)"
+
+          echo "----- rendered Job manifest -----"
+          echo "${RENDERED}"
+          echo "${RENDERED}" | kubectl apply -f -
+
+      - name: Wait DB migration Job completion
+        run: |
+          JOB_NAME="${{ steps.db_job.outputs.job_name }}"
+          NAMESPACE="${{ vars.K8S_NAMESPACE }}"
+          DEADLINE=$(( SECONDS + 900 ))
+          OUTCOME="timeout"
+
+          while (( SECONDS < DEADLINE )); do
+            COUNTERS="$(kubectl get job "${JOB_NAME}" -n "${NAMESPACE}" \
+              -o jsonpath='{.status.succeeded}|{.status.failed}' 2>/dev/null || echo '|')"
+
+            SUCCEEDED="${COUNTERS%%|*}"
+            FAILED="${COUNTERS##*|}"
+
+            if [[ "${SUCCEEDED:-0}" -ge 1 ]]; then
+              OUTCOME="succeeded"
+              break
+            fi
+
+            if [[ "${FAILED:-0}" -ge 1 ]]; then
+              OUTCOME="failed"
+              break
+            fi
+
+            sleep 5
+          done
+
+          if [[ "${OUTCOME}" == "succeeded" ]]; then
+            exit 0
+          fi
+
+          echo "Job ${JOB_NAME} did not complete successfully (${OUTCOME}). Collecting diagnostics..."
+          kubectl describe job "${JOB_NAME}" -n "${NAMESPACE}" || true
+          POD_NAME="$(kubectl get pods -n "${NAMESPACE}" -l job-name="${JOB_NAME}" -o jsonpath='{.items[0].metadata.name}')"
+          if [[ -n "${POD_NAME}" ]]; then
+            kubectl logs -n "${NAMESPACE}" "${POD_NAME}" --all-containers=true || true
+          fi
+          exit 1
+
+      - name: Show DB migration Job logs
+        run: |
+          JOB_NAME="${{ steps.db_job.outputs.job_name }}"
+          NAMESPACE="${{ vars.K8S_NAMESPACE }}"
+          POD_NAME="$(kubectl get pods -n "${NAMESPACE}" -l job-name="${JOB_NAME}" -o jsonpath='{.items[0].metadata.name}')"
+          if [[ -n "${POD_NAME}" ]]; then
+            kubectl logs -n "${NAMESPACE}" "${POD_NAME}" --all-containers=true
+          fi
+
+  app-deploy:
+    name: App Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    needs:
+      - build-push-image
+      - prepare-deploy
+      - db-migrate
+    # Runs after a skipped db-migrate (image_tag rollback), never after a failed or cancelled one.
+    if: >-
+      !failure() && !cancelled() &&
+      github.ref == 'refs/heads/main' &&
+      (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b # v6.2.1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure kubectl
+        run: aws eks update-kubeconfig --region "${{ env.AWS_REGION }}" --name "${{ vars.EKS_CLUSTER_NAME }}"
+
+      - name: Render deployment manifest with immutable image
+        env:
+          IMAGE_URI: ${{ needs.build-push-image.outputs.image_uri }}
+        run: |
+          sed -e "s|IMAGE_URI_PLACEHOLDER|${IMAGE_URI}|g" \
+              -e "s|VERSION_PLACEHOLDER|${IMAGE_URI##*:}|g" \
+            k8s/03-identity-deployment.yaml > k8s/03-identity-deployment.rendered.yaml
+
+      # Deployment last: a Service/HPA failure (e.g. NodePort 30081 still held by another
+      # namespace) stops the job before a new revision exists, so there is nothing to undo.
+      - name: Apply Kubernetes manifests
+        run: |
+          set -euo pipefail
+          kubectl apply -f k8s/04-identity-service.yaml
+          kubectl apply -f k8s/05-identity-hpa.yaml
+          kubectl apply -f k8s/03-identity-deployment.rendered.yaml
+
+      - name: Wait rollout
+        id: rollout
+        run: kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT_NAME }} --namespace=${{ vars.K8S_NAMESPACE }} --timeout=180s
+
+      # Without the gateway API (bootstrap from zero, before the api-gateway apply), the rollout validates the deploy.
+      - name: Smoke test through the gateway
+        id: smoke
+        run: |
+          set -euo pipefail
+          # A failed lookup is not a failed deploy: the rollout already passed, so no undo.
+          if ! API_ENDPOINT="$(aws apigatewayv2 get-apis \
+            --query "Items[?Name=='apigw-oficina-mecanica'].ApiEndpoint | [0]" \
+            --output text --no-cli-pager)"; then
+            echo "::warning::A consulta da API do gateway falhou; smoke pulado."
+            echo "Smoke pulado: a consulta get-apis falhou." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [[ -z "${API_ENDPOINT}" || "${API_ENDPOINT}" == "None" ]]; then
+            echo "::warning::API apigw-oficina-mecanica não encontrada; smoke pulado."
+            echo "Smoke pulado: a API apigw-oficina-mecanica do gateway não existe na conta." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          curl -fsS --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 5 --retry-all-errors \
+            "${API_ENDPOINT}/health/identity"
+
+      - name: Roll back on failed rollout or smoke
+        if: failure() && (steps.rollout.conclusion == 'failure' || steps.smoke.conclusion == 'failure')
+        run: |
+          kubectl rollout undo deployment/${{ vars.K8S_DEPLOYMENT_NAME }} --namespace=${{ vars.K8S_NAMESPACE }} \
+            || echo "::error::rollout undo falhou (sem revisão anterior?)."
+          kubectl rollout status deployment/${{ vars.K8S_DEPLOYMENT_NAME }} --namespace=${{ vars.K8S_NAMESPACE }} --timeout=180s \
+            || echo "::error::A revisão anterior não ficou disponível em 180 s."
+          echo "::error::Deploy desfeito: o rollout ou o smoke falhou."
+          exit 1
