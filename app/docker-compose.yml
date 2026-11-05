@@ -1,0 +1,112 @@
+name: identity
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: identity-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: identity_service
+      TZ: America/Sao_Paulo
+      PGTZ: America/Sao_Paulo
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: identity-service:local
+    build: &api-build
+      context: .
+      args:
+        DATABASE_URL: postgresql://postgres:postgres@postgres:5432/identity_service?schema=public
+    container_name: identity-migrate
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/identity_service?schema=public
+      TZ: America/Sao_Paulo
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: identity-service:local
+    build: *api-build
+    container_name: identity-api
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/identity_service?schema=public
+      STAFF_JWT_PUBLIC_KEY: ${STAFF_JWT_PUBLIC_KEY:?Gere as chaves RS256 de funcionário conforme docs/local-setup.md}
+      STAFF_JWT_KEY_ID: ${STAFF_JWT_KEY_ID:-staff-local}
+      STAFF_JWT_ISSUER: ${STAFF_JWT_ISSUER:-oficina-identity}
+      STAFF_JWT_AUDIENCE: ${STAFF_JWT_AUDIENCE:-oficina-services}
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      MESSAGING_TOPIC_ARN: arn:aws:sns:us-east-1:000000000000:oficina-events.fifo
+      CACHE_URL: redis://:valkey@valkey:6379
+      CACHE_TTL_SECONDS: 43200
+      TZ: America/Sao_Paulo
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health/ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    # > drain window (10 s) + server close + $disconnect() + margin.
+    # The Compose default is 10 s, which expires right at the end of the window
+    # and kills the API with SIGKILL before it releases the pool.
+    stop_grace_period: 40s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  localstack:
+    image: localstack/localstack:4.14.0
+    container_name: identity-localstack
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4567:4566"
+    volumes:
+      - ./localstack/init-topology.sh:/etc/localstack/init/ready.d/init-topology.sh:ro
+    healthcheck:
+      # Healthy only after the ready.d script created the topic and the queues.
+      test: ["CMD-SHELL", "curl -fs http://localhost:4566/_localstack/init/ready | grep -q '\"completed\": true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+
+  valkey:
+    image: valkey/valkey:9.1
+    container_name: identity-valkey
+    restart: unless-stopped
+    command: ["valkey-server", "--requirepass", "valkey"]
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "valkey", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
