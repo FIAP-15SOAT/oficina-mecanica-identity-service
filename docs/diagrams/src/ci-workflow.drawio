@@ -1,0 +1,220 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="Electron" agent="oficina-cicd-generator">
+  <diagram name="CI Workflow" id="ci-workflow">
+    <mxGraphModel dx="3142" dy="1869" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1220" pageHeight="668" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="hdr1" parent="1" style="rounded=1;arcSize=18;fillColor=#e8f0fe;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="70" width="1184" x="16" y="16" as="geometry" />
+        </mxCell>
+        <mxCell id="hdi2" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20fill%3D%22%231f6feb%22%20role%3D%22img%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ctitle%3EGitHub%20Actions%3C%2Ftitle%3E%3Cpath%20d%3D%22M10.984%2013.836a.5.5%200%200%201-.353-.146l-.745-.743a.5.5%200%201%201%20.706-.708l.392.391%201.181-1.18a.5.5%200%200%201%20.708.707l-1.535%201.533a.504.504%200%200%201-.354.146zm9.353-.147l1.534-1.532a.5.5%200%200%200-.707-.707l-1.181%201.18-.392-.391a.5.5%200%201%200-.706.708l.746.743a.497.497%200%200%200%20.706-.001zM4.527%207.452l2.557-1.585A1%201%200%200%200%207.09%204.17L4.533%202.56A1%201%200%200%200%203%203.406v3.196a1.001%201.001%200%200%200%201.527.85zm2.03-2.436L4%206.602V3.406l2.557%201.61zM24%2012.5c0%201.93-1.57%203.5-3.5%203.5a3.503%203.503%200%200%201-3.46-3h-2.08a3.503%203.503%200%200%201-3.46%203%203.502%203.502%200%200%201-3.46-3h-.558c-.972%200-1.85-.399-2.482-1.042V17c0%201.654%201.346%203%203%203h.04c.244-1.693%201.7-3%203.46-3%201.93%200%203.5%201.57%203.5%203.5S13.43%2024%2011.5%2024a3.502%203.502%200%200%201-3.46-3H8c-2.206%200-4-1.794-4-4V9.899A5.008%205.008%200%200%201%200%205c0-2.757%202.243-5%205-5s5%202.243%205%205a5.005%205.005%200%200%201-4.952%204.998A2.482%202.482%200%200%200%207.482%2012h.558c.244-1.693%201.7-3%203.46-3a3.502%203.502%200%200%201%203.46%203h2.08a3.503%203.503%200%200%201%203.46-3c1.93%200%203.5%201.57%203.5%203.5zm-15%208c0%201.378%201.122%202.5%202.5%202.5s2.5-1.122%202.5-2.5-1.122-2.5-2.5-2.5S9%2019.122%209%2020.5zM5%209c2.206%200%204-1.794%204-4S7.206%201%205%201%201%202.794%201%205s1.794%204%204%204zm9%203.5c0-1.378-1.122-2.5-2.5-2.5S9%2011.122%209%2012.5s1.122%202.5%202.5%202.5%202.5-1.122%202.5-2.5zm9%200c0-1.378-1.122-2.5-2.5-2.5S18%2011.122%2018%2012.5s1.122%202.5%202.5%202.5%202.5-1.122%202.5-2.5zm-13%208a.5.5%200%201%200%201%200%20.5.5%200%200%200-1%200zm2%200a.5.5%200%201%200%201%200%20.5.5%200%200%200-1%200zm12%200c0%201.93-1.57%203.5-3.5%203.5a3.503%203.503%200%200%201-3.46-3.002c-.007.001-.013.005-.021.005l-.506.017h-.017a.5.5%200%200%201-.016-.999l.506-.017c.018-.002.035.006.052.007A3.503%203.503%200%200%201%2020.5%2017c1.93%200%203.5%201.57%203.5%203.5zm-1%200c0-1.378-1.122-2.5-2.5-2.5S18%2019.122%2018%2020.5s1.122%202.5%202.5%202.5%202.5-1.122%202.5-2.5z%22%2F%3E%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="42" width="42" x="34" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="hdt3" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1f6feb;" value="CI Workflow" vertex="1">
+          <mxGeometry height="30" width="740" x="88" y="26" as="geometry" />
+        </mxCell>
+        <mxCell id="hds4" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontColor=#475569;" value="Gatilho: push nas branches feature/** e fix/**" vertex="1">
+          <mxGeometry height="20" width="740" x="88" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="hdr25" parent="1" style="text;html=1;align=right;verticalAlign=middle;fontSize=12;fontColor=#64748b;" value=".github/workflows/ci.yml" vertex="1">
+          <mxGeometry height="20" width="330" x="850" y="41" as="geometry" />
+        </mxCell>
+        <mxCell id="pill6" parent="1" style="rounded=1;arcSize=50;fillColor=#eef2ff;strokeColor=#6366f1;strokeWidth=1.8;html=1;fontSize=12;fontStyle=1;fontColor=#1e293b;align=center;spacingLeft=18;" value="Push&lt;br&gt;branches feature/** ou fix/**" vertex="1">
+          <mxGeometry height="46" width="360" x="433" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pi7" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3C!--%20%40license%20lucide-static%20v0.469.0%20-%20ISC%20--%3E%0A%3Csvg%0A%20%20class%3D%22lucide%20lucide-git-branch%22%0A%20%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%0A%20%20width%3D%2224%22%0A%20%20height%3D%2224%22%0A%20%20viewBox%3D%220%200%2024%2024%22%0A%20%20fill%3D%22none%22%0A%20%20stroke%3D%22%236366f1%22%0A%20%20stroke-width%3D%222%22%0A%20%20stroke-linecap%3D%22round%22%0A%20%20stroke-linejoin%3D%22round%22%0A%3E%0A%20%20%3Cline%20x1%3D%226%22%20x2%3D%226%22%20y1%3D%223%22%20y2%3D%2215%22%20%2F%3E%0A%20%20%3Ccircle%20cx%3D%2218%22%20cy%3D%226%22%20r%3D%223%22%20%2F%3E%0A%20%20%3Ccircle%20cx%3D%226%22%20cy%3D%2218%22%20r%3D%223%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22M18%209a9%209%200%200%201-9%209%22%20%2F%3E%0A%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="22" width="22" x="447" y="112" as="geometry" />
+        </mxCell>
+        <mxCell id="card8" parent="1" style="rounded=1;arcSize=10;fillColor=#f6f9ff;strokeColor=#c7d7f0;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="210" x="40" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar9" parent="1" style="rounded=1;arcSize=60;fillColor=#8250df;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="210" x="40" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="ct10" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="1. Lint" vertex="1">
+          <mxGeometry height="20" width="190" x="52" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ci11" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3C!--%20%40license%20lucide-static%20v0.469.0%20-%20ISC%20--%3E%0A%3Csvg%0A%20%20class%3D%22lucide%20lucide-file-search%22%0A%20%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%0A%20%20width%3D%2224%22%0A%20%20height%3D%2224%22%0A%20%20viewBox%3D%220%200%2024%2024%22%0A%20%20fill%3D%22none%22%0A%20%20stroke%3D%22%238250df%22%0A%20%20stroke-width%3D%222%22%0A%20%20stroke-linecap%3D%22round%22%0A%20%20stroke-linejoin%3D%22round%22%0A%3E%0A%20%20%3Cpath%20d%3D%22M14%202v4a2%202%200%200%200%202%202h4%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22M4.268%2021a2%202%200%200%200%201.727%201H18a2%202%200%200%200%202-2V7l-5-5H6a2%202%200%200%200-2%202v3%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22m9%2018-1.5-1.5%22%20%2F%3E%0A%20%20%3Ccircle%20cx%3D%225%22%20cy%3D%2214%22%20r%3D%223%22%20%2F%3E%0A%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="125" y="216" as="geometry" />
+        </mxCell>
+        <mxCell id="cb12" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="&amp;#8226; Checkout + Setup CI&lt;br&gt;&amp;#8226; Análise estática do código (npm run lint)" vertex="1">
+          <mxGeometry height="64" width="188" x="52" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="card13" parent="1" style="rounded=1;arcSize=10;fillColor=#f6f9ff;strokeColor=#c7d7f0;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="210" x="274" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar14" parent="1" style="rounded=1;arcSize=60;fillColor=#C21325;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="210" x="274" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="ct15" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="2. Unit Tests" vertex="1">
+          <mxGeometry height="20" width="190" x="286" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ci16" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20fill%3D%22%23C21325%22%20role%3D%22img%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ctitle%3EJest%3C%2Ftitle%3E%3Cpath%20d%3D%22M22.251%2011.82a3.117%203.117%200%200%200-2.328-3.01L22.911%200H8.104L11.1%208.838a3.116%203.116%200%200%200-2.244%202.988c0%201.043.52%201.967%201.313%202.536a8.279%208.279%200%200%201-1.084%201.244%208.14%208.14%200%200%201-2.55%201.647c-.834-.563-1.195-1.556-.869-2.446a3.11%203.11%200%200%200-.91-6.08%203.117%203.117%200%200%200-3.113%203.113c0%20.848.347%201.626.903%202.182-.048.097-.097.195-.146.299-.465.959-.993%202.043-1.195%203.259-.403%202.432.257%204.384%201.849%205.489A5.093%205.093%200%200%200%205.999%2024c1.827%200%203.682-.917%205.475-1.807%201.279-.632%202.599-1.292%203.898-1.612.48-.118.98-.187%201.508-.264%201.07-.153%202.175-.312%203.168-.89a4.482%204.482%200%200%200%202.182-3.091c.174-.994%200-1.994-.444-2.87.298-.48.465-1.042.465-1.647zm-1.355%200c0%20.965-.785%201.75-1.75%201.75a1.753%201.753%200%200%201-1.085-3.126l.007-.007c.056-.042.118-.084.18-.125%200%200%20.008%200%20.008-.007.028-.014.055-.035.083-.05.007%200%20.014-.006.021-.006.028-.014.063-.028.097-.042.035-.014.07-.027.098-.041.007%200%20.013-.007.02-.007.028-.007.056-.021.084-.028.007%200%20.02-.007.028-.007.034-.007.062-.014.097-.02h.007l.104-.022c.007%200%20.02%200%20.028-.007.028%200%20.055-.007.083-.007h.035c.035%200%20.07-.007.111-.007h.09c.028%200%20.05%200%20.077.007h.014c.055.007.111.014.167.028a1.766%201.766%200%200%201%201.396%201.723zM10.043%201.39h10.93l-2.509%207.4c-.104.02-.208.055-.312.09l-2.64-5.385-2.648%205.35c-.104-.034-.216-.055-.327-.076l-2.494-7.38zm4.968%209.825a3.083%203.083%200%200%200-.938-1.668l1.438-2.904%201.452%202.967c-.43.43-.743.98-.868%201.605H15.01zm-3.481-1.098c.034-.007.062-.014.097-.02h.02c.029-.008.056-.008.084-.015h.028c.028%200%20.049-.007.076-.007h.271c.028%200%20.049.007.07.007.014%200%20.02%200%20.035.007.027.007.048.007.076.014.007%200%20.014%200%20.028.007l.097.02h.007c.028.008.056.015.083.029.007%200%20.014.007.028.007.021.007.049.014.07.027.007%200%20.014.007.02.007.028.014.056.021.084.035h.007a.374.374%200%200%201%20.09.049h.007c.028.014.056.034.084.048.007%200%20.007.007.013.007.028.014.05.035.077.049l.007.007c.083.062.16.132.236.201l.007.007a1.747%201.747%200%200%201%20.48%201.209%201.752%201.752%200%200%201-3.502%200%201.742%201.742%200%200%201%201.32-1.695zm-6.838-.049c.966%200%201.751.786%201.751%201.751s-.785%201.751-1.75%201.751-1.752-.785-1.752-1.75.786-1.752%201.751-1.752zm16.163%206.025a3.07%203.07%200%200%201-1.508%202.133c-.758.438-1.689.577-2.669.716a17.29%2017.29%200%200%200-1.64.291c-1.445.355-2.834%201.05-4.182%201.717-1.724.854-3.35%201.66-4.857%201.66a3.645%203.645%200%200%201-2.154-.688c-1.529-1.056-1.453-3.036-1.272-4.12.167-1.015.632-1.966%201.077-2.877.028-.055.049-.104.077-.16.152.056.312.098.479.126-.264%201.473.486%202.994%201.946%203.745l.264.139.284-.104c1.216-.431%202.342-1.133%203.336-2.071a9.334%209.334%200%200%200%201.445-1.716c.16.027.32.034.48.034a3.117%203.117%200%200%200%203.008-2.327h1.167a3.109%203.109%200%200%200%203.01%202.327c.576%200%201.11-.16%201.57-.43.18.52.236%201.063.139%201.605z%22%2F%3E%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="359" y="216" as="geometry" />
+        </mxCell>
+        <mxCell id="cb17" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="&amp;#8226; Checkout + Setup CI&lt;br&gt;&amp;#8226; Testes unitários com cobertura (test:cov)" vertex="1">
+          <mxGeometry height="64" width="188" x="286" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="card18" parent="1" style="rounded=1;arcSize=10;fillColor=#f6f9ff;strokeColor=#c7d7f0;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="210" x="508" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar19" parent="1" style="rounded=1;arcSize=60;fillColor=#0ea5e9;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="210" x="508" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="ct20" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="3. E2E Tests" vertex="1">
+          <mxGeometry height="20" width="190" x="520" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ci21" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3C!--%20%40license%20lucide-static%20v0.469.0%20-%20ISC%20--%3E%0A%3Csvg%0A%20%20class%3D%22lucide%20lucide-flask-conical%22%0A%20%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%0A%20%20width%3D%2224%22%0A%20%20height%3D%2224%22%0A%20%20viewBox%3D%220%200%2024%2024%22%0A%20%20fill%3D%22none%22%0A%20%20stroke%3D%22%230ea5e9%22%0A%20%20stroke-width%3D%222%22%0A%20%20stroke-linecap%3D%22round%22%0A%20%20stroke-linejoin%3D%22round%22%0A%3E%0A%20%20%3Cpath%20d%3D%22M14%202v6a2%202%200%200%200%20.245.96l5.51%2010.08A2%202%200%200%201%2018%2022H6a2%202%200%200%201-1.755-2.96l5.51-10.08A2%202%200%200%200%2010%208V2%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22M6.453%2015h11.094%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22M8.5%202h7%22%20%2F%3E%0A%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="593" y="216" as="geometry" />
+        </mxCell>
+        <mxCell id="cb22" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="• Checkout + Setup CI&lt;br&gt;• E2E com PostgreSQL 18, Valkey 9.1 e LocalStack 4.14.0 (Testcontainers)" vertex="1">
+          <mxGeometry height="64" width="188" x="520" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="card23" parent="1" style="rounded=1;arcSize=10;fillColor=#f6f9ff;strokeColor=#c7d7f0;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="210" x="742" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar24" parent="1" style="rounded=1;arcSize=60;fillColor=#E0234E;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="210" x="742" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="ct25" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="4. Build" vertex="1">
+          <mxGeometry height="20" width="190" x="754" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ci26" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20fill%3D%22%23E0234E%22%20role%3D%22img%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ctitle%3ENestJS%3C%2Ftitle%3E%3Cpath%20d%3D%22M14.131.047c-.173%200-.334.037-.483.087.316.21.49.49.576.806.007.043.019.074.025.117a.681.681%200%200%201%20.013.112c.024.545-.143.614-.26.936-.18.415-.13.861.086%201.22a.74.74%200%200%200%20.074.137c-.235-1.568%201.073-1.803%201.314-2.293.019-.428-.334-.713-.613-.911a1.37%201.37%200%200%200-.732-.21zM16.102.4c-.024.143-.006.106-.012.18-.006.05-.006.112-.012.161-.013.05-.025.1-.044.149-.012.05-.03.1-.05.149l-.067.142c-.02.025-.031.05-.05.075l-.037.055a2.152%202.152%200%200%201-.093.124c-.037.038-.068.081-.112.112v.006c-.037.031-.074.068-.118.1-.13.099-.278.173-.415.266-.043.03-.087.056-.124.093a.906.906%200%200%200-.118.099c-.043.037-.074.074-.111.118-.031.037-.068.08-.093.124a1.582%201.582%200%200%200-.087.13c-.025.05-.043.093-.068.142-.019.05-.037.093-.05.143a2.007%202.007%200%200%200-.043.155c-.006.025-.006.056-.012.08-.007.025-.007.05-.013.075%200%20.05-.006.105-.006.155%200%20.037%200%20.074.006.111%200%20.05.006.1.019.155.006.05.018.1.03.15.02.049.032.098.05.148.013.03.031.062.044.087l-1.426-.552c-.241-.068-.477-.13-.719-.186l-.39-.093c-.372-.074-.75-.13-1.128-.167-.013%200-.019-.006-.031-.006A11.082%2011.082%200%200%200%208.9%202.855c-.378.025-.756.074-1.134.136a12.45%2012.45%200%200%200-.837.174l-.279.074c-.092.037-.18.08-.266.118l-.205.093c-.012.006-.024.006-.03.012-.063.031-.118.056-.174.087a2.738%202.738%200%200%200-.236.118c-.043.018-.086.043-.124.062a.559.559%200%200%201-.055.03c-.056.032-.112.063-.162.094a1.56%201.56%200%200%200-.148.093c-.044.03-.087.055-.124.086-.006.007-.013.007-.019.013-.037.025-.08.056-.118.087l-.012.012-.093.074c-.012.007-.025.019-.037.025-.031.025-.062.056-.093.08-.006.013-.019.02-.025.025-.037.038-.074.069-.111.106-.007%200-.007.006-.013.012a1.742%201.742%200%200%200-.111.106c-.007.006-.007.012-.013.012a1.454%201.454%200%200%200-.093.1c-.012.012-.03.024-.043.036a1.374%201.374%200%200%201-.106.112c-.006.012-.018.019-.024.03-.05.05-.093.1-.143.15l-.018.018c-.1.106-.205.211-.317.304-.111.1-.229.192-.347.273a3.777%203.777%200%200%201-.762.421c-.13.056-.267.106-.403.149-.26.056-.527.161-.756.18-.05%200-.105.012-.155.018l-.155.037-.149.056c-.05.019-.099.044-.148.068-.044.031-.093.056-.137.087a1.011%201.011%200%200%200-.124.106c-.043.03-.087.074-.124.111-.037.043-.074.08-.105.124-.031.05-.068.093-.093.143a1.092%201.092%200%200%200-.087.142c-.025.056-.05.106-.068.161-.019.05-.037.106-.056.161-.012.05-.025.1-.03.15%200%20.005-.007.012-.007.018-.012.056-.012.13-.019.167C.006%207.95%200%207.986%200%208.03a.657.657%200%200%200%20.074.31v.006c.019.037.044.075.069.112.024.037.05.074.08.111.031.031.068.069.106.1a.906.906%200%200%200%20.117.099c.149.13.186.173.378.272.031.019.062.031.1.05.006%200%20.012.006.018.006%200%20.013%200%20.019.006.031a1.272%201.272%200%200%200%20.08.298c.02.037.032.074.05.111.007.013.013.025.02.031.024.05.049.093.073.137l.093.13c.031.037.069.08.106.118.037.037.074.068.118.105%200%200%20.006.006.012.006.037.031.074.062.112.087a.986.986%200%200%200%20.136.08c.043.025.093.05.142.069a.73.73%200%200%200%20.124.043c.007.006.013.006.025.012.025.007.056.013.08.019-.018.335-.024.65.026.762.055.124.328-.254.6-.688-.036.428-.061.93%200%201.079.069.155.44-.329.763-.862%204.395-1.016%208.405%202.02%208.826%206.31-.08-.67-.905-1.041-1.283-.948-.186.458-.502%201.047-1.01%201.413.043-.41.025-.83-.062-1.24a4.009%204.009%200%200%201-.769%201.562c-.588.043-1.177-.242-1.487-.67-.025-.018-.031-.055-.05-.08-.018-.043-.037-.087-.05-.13a.515.515%200%200%201-.037-.13c-.006-.044-.006-.087-.006-.137v-.093a.992.992%200%200%201%20.031-.13c.013-.043.025-.086.044-.13.024-.043.043-.087.074-.13.105-.298.105-.54-.087-.682a.706.706%200%200%200-.118-.062c-.024-.006-.055-.018-.08-.025l-.05-.018a.847.847%200%200%200-.13-.031.472.472%200%200%200-.13-.019%201.01%201.01%200%200%200-.136-.012c-.031%200-.062.006-.093.006a.484.484%200%200%200-.137.019c-.043.006-.086.012-.13.024a1.068%201.068%200%200%200-.13.044c-.043.018-.08.037-.124.056-.037.018-.074.043-.118.062-1.444.942-.582%203.148.403%203.787-.372.068-.75.148-.855.229l-.013.012c.267.161.546.298.837.416.397.13.818.247%201.004.297v.006a5.996%205.996%200%200%200%201.562.112c2.746-.192%204.996-2.281%205.405-5.033l.037.161c.019.112.043.23.056.347v.006c.012.056.018.112.025.162v.024c.006.056.012.112.012.162.006.068.012.136.012.204v.1c0%20.03.007.067.007.098%200%20.038-.007.075-.007.112v.087c0%20.043-.006.08-.006.124%200%20.025%200%20.05-.006.08%200%20.044-.006.087-.006.137-.006.018-.006.037-.006.055l-.02.143c0%20.019%200%20.037-.005.056-.007.062-.019.118-.025.18v.012l-.037.174v.018l-.037.167c0%20.007-.007.02-.007.025a1.663%201.663%200%200%201-.043.168v.018c-.019.062-.037.118-.05.174-.006.006-.006.012-.006.012l-.056.186c-.024.062-.043.118-.068.18-.025.062-.043.124-.068.18-.025.062-.05.117-.074.18h-.007c-.024.055-.05.117-.08.173a.302.302%200%200%201-.019.043c-.006.006-.006.013-.012.019a5.867%205.867%200%200%201-1.742%202.082c-.05.031-.099.069-.149.106-.012.012-.03.018-.043.03a2.603%202.603%200%200%201-.136.094l.018.037h.007l.26-.037h.006c.161-.025.322-.056.483-.087.044-.006.093-.019.137-.031l.087-.019c.043-.006.086-.018.13-.024.037-.013.074-.02.111-.031.62-.15%201.221-.354%201.798-.595a9.926%209.926%200%200%201-3.85%203.142c.714-.05%201.426-.167%202.114-.366a9.903%209.903%200%200%200%205.857-4.68%209.893%209.893%200%200%201-1.667%203.986%209.758%209.758%200%200%200%201.655-1.376%209.824%209.824%200%200%200%202.61-5.268c.21.98.272%201.99.18%202.987%204.474-6.241.371-12.712-1.346-14.416-.006-.013-.012-.019-.012-.031-.006.006-.006.006-.006.012%200-.006%200-.006-.007-.012%200%20.074-.006.148-.012.223a8.34%208.34%200%200%201-.062.415c-.03.136-.068.273-.105.41-.044.13-.093.266-.15.396a5.322%205.322%200%200%201-.185.378%204.735%204.735%200%200%201-.477.688c-.093.111-.192.21-.292.31a3.994%203.994%200%200%201-.18.155l-.142.124a3.459%203.459%200%200%201-.347.241%204.295%204.295%200%200%201-.366.211c-.13.062-.26.118-.39.174a4.364%204.364%200%200%201-.818.223c-.143.025-.285.037-.422.05a4.914%204.914%200%200%201-.297.012%204.66%204.66%200%200%201-.422-.025%203.137%203.137%200%200%201-.421-.062%203.136%203.136%200%200%201-.415-.105h-.007c.137-.013.273-.025.41-.05a4.493%204.493%200%200%200%20.818-.223c.136-.05.266-.112.39-.174.13-.062.248-.13.372-.204.118-.08.235-.161.347-.248.112-.087.217-.18.316-.279.105-.093.198-.198.291-.304.093-.111.18-.223.26-.334.013-.019.026-.044.038-.062.062-.1.124-.199.18-.298a4.272%204.272%200%200%200%20.334-.775c.044-.13.075-.266.106-.403.025-.142.05-.278.062-.415.012-.142.025-.285.025-.421%200-.1-.007-.199-.013-.298a6.726%206.726%200%200%200-.05-.415%204.493%204.493%200%200%200-.092-.415c-.044-.13-.087-.267-.137-.397-.05-.13-.111-.26-.173-.384-.069-.124-.137-.248-.211-.366a6.843%206.843%200%200%200-.248-.34c-.093-.106-.186-.212-.285-.317a3.878%203.878%200%200%200-.161-.155c-.28-.217-.57-.421-.862-.607a1.154%201.154%200%200%200-.124-.062%202.415%202.415%200%200%200-.589-.26Z%22%2F%3E%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="827" y="216" as="geometry" />
+        </mxCell>
+        <mxCell id="cb27" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="&amp;#8226; Checkout + Setup CI&lt;br&gt;&amp;#8226; Compila o TypeScript (npm run build)&lt;br&gt;&amp;#8226; Smoke do preload de telemetria" vertex="1">
+          <mxGeometry height="64" width="188" x="754" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="card28" parent="1" style="rounded=1;arcSize=10;fillColor=#f6f9ff;strokeColor=#c7d7f0;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="210" x="976" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar29" parent="1" style="rounded=1;arcSize=60;fillColor=#4169E1;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="210" x="976" y="176" as="geometry" />
+        </mxCell>
+        <mxCell id="ct30" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="5. DB Validation" vertex="1">
+          <mxGeometry height="20" width="190" x="988" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="ci31" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20fill%3D%22%234169E1%22%20role%3D%22img%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ctitle%3EPostgreSQL%3C%2Ftitle%3E%3Cpath%20d%3D%22M23.5594%2014.7228a.5269.5269%200%200%200-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191%201.342-2.0482%202.445-4.522%203.0411-6.8297.2714-1.0507.7982-3.5237.1222-4.7316a1.5641%201.5641%200%200%200-.1509-.235C21.6931.9086%2019.8007.0248%2017.5099.0005c-1.4947-.0158-2.7705.3461-3.1161.4794a9.449%209.449%200%200%200-.5159-.0816%208.044%208.044%200%200%200-1.3114-.1278c-1.1822-.0184-2.2038.2642-3.0498.8406-.8573-.3211-4.7888-1.645-7.2219.0788C.9359%202.1526.3086%203.8733.4302%206.3043c.0409.818.5069%203.334%201.2423%205.7436.4598%201.5065.9387%202.7019%201.4334%203.582.553.9942%201.1259%201.5933%201.7143%201.7895.4474.1491%201.1327.1441%201.8581-.7279.8012-.9635%201.5903-1.8258%201.9446-2.2069.4351.2355.9064.3625%201.39.3772a.0569.0569%200%200%200%20.0004.0041%2011.0312%2011.0312%200%200%200-.2472.3054c-.3389.4302-.4094.5197-1.5002.7443-.3102.064-1.1344.2339-1.1464.8115-.0025.1224.0329.2309.0919.3268.2269.4231.9216.6097%201.015.6331%201.3345.3335%202.5044.092%203.3714-.6787-.017%202.231.0775%204.4174.3454%205.0874.2212.5529.7618%201.9045%202.4692%201.9043.2505%200%20.5263-.0291.8296-.0941%201.7819-.3821%202.5557-1.1696%202.855-2.9059.1503-.8707.4016-2.8753.5388-4.1012.0169-.0703.0357-.1207.057-.1362.0007-.0005.0697-.0471.4272.0307a.3673.3673%200%200%200%20.0443.0068l.2539.0223.0149.001c.8468.0384%201.9114-.1426%202.5312-.4308.6438-.2988%201.8057-1.0323%201.5951-1.6698zM2.371%2011.8765c-.7435-2.4358-1.1779-4.8851-1.2123-5.5719-.1086-2.1714.4171-3.6829%201.5623-4.4927%201.8367-1.2986%204.8398-.5408%206.108-.13-.0032.0032-.0066.0061-.0098.0094-2.0238%202.044-1.9758%205.536-1.9708%205.7495-.0002.0823.0066.1989.0162.3593.0348.5873.0996%201.6804-.0735%202.9184-.1609%201.1504.1937%202.2764.9728%203.0892.0806.0841.1648.1631.2518.2374-.3468.3714-1.1004%201.1926-1.9025%202.1576-.5677.6825-.9597.5517-1.0886.5087-.3919-.1307-.813-.5871-1.2381-1.3223-.4796-.839-.9635-2.0317-1.4155-3.5126zm6.0072%205.0871c-.1711-.0428-.3271-.1132-.4322-.1772.0889-.0394.2374-.0902.4833-.1409%201.2833-.2641%201.4815-.4506%201.9143-1.0002.0992-.126.2116-.2687.3673-.4426a.3549.3549%200%200%200%20.0737-.1298c.1708-.1513.2724-.1099.4369-.0417.156.0646.3078.26.3695.4752.0291.1016.0619.2945-.0452.4444-.9043%201.2658-2.2216%201.2494-3.1676%201.0128zm2.094-3.988-.0525.141c-.133.3566-.2567.6881-.3334%201.003-.6674-.0021-1.3168-.2872-1.8105-.8024-.6279-.6551-.9131-1.5664-.7825-2.5004.1828-1.3079.1153-2.4468.079-3.0586-.005-.0857-.0095-.1607-.0122-.2199.2957-.2621%201.6659-.9962%202.6429-.7724.4459.1022.7176.4057.8305.928.5846%202.7038.0774%203.8307-.3302%204.7363-.084.1866-.1633.3629-.2311.5454zm7.3637%204.5725c-.0169.1768-.0358.376-.0618.5959l-.146.4383a.3547.3547%200%200%200-.0182.1077c-.0059.4747-.054.6489-.115.8693-.0634.2292-.1353.4891-.1794%201.0575-.11%201.4143-.8782%202.2267-2.4172%202.5565-1.5155.3251-1.7843-.4968-2.0212-1.2217a6.5824%206.5824%200%200%200-.0769-.2266c-.2154-.5858-.1911-1.4119-.1574-2.5551.0165-.5612-.0249-1.9013-.3302-2.6462.0044-.2932.0106-.5909.019-.8918a.3529.3529%200%200%200-.0153-.1126%201.4927%201.4927%200%200%200-.0439-.208c-.1226-.4283-.4213-.7866-.7797-.9351-.1424-.059-.4038-.1672-.7178-.0869.067-.276.1831-.5875.309-.9249l.0529-.142c.0595-.16.134-.3257.213-.5012.4265-.9476%201.0106-2.2453.3766-5.1772-.2374-1.0981-1.0304-1.6343-2.2324-1.5098-.7207.0746-1.3799.3654-1.7088.5321a5.6716%205.6716%200%200%200-.1958.1041c.0918-1.1064.4386-3.1741%201.7357-4.4823a4.0306%204.0306%200%200%201%20.3033-.276.3532.3532%200%200%200%20.1447-.0644c.7524-.5706%201.6945-.8506%202.802-.8325.4091.0067.8017.0339%201.1742.081%201.939.3544%203.2439%201.4468%204.0359%202.3827.8143.9623%201.2552%201.9315%201.4312%202.4543-1.3232-.1346-2.2234.1268-2.6797.779-.9926%201.4189.543%204.1729%201.2811%205.4964.1353.2426.2522.4522.2889.5413.2403.5825.5515.9713.7787%201.2552.0696.087.1372.1714.1885.245-.4008.1155-1.1208.3825-1.0552%201.717-.0123.1563-.0423.4469-.0834.8148-.0461.2077-.0702.4603-.0994.7662zm.8905-1.6211c-.0405-.8316.2691-.9185.5967-1.0105a2.8566%202.8566%200%200%200%20.135-.0406%201.202%201.202%200%200%200%20.1342.103c.5703.3765%201.5823.4213%203.0068.1344-.2016.1769-.5189.3994-.9533.6011-.4098.1903-1.0957.333-1.7473.3636-.7197.0336-1.0859-.0807-1.1721-.151zm.5695-9.2712c-.0059.3508-.0542.6692-.1054%201.0017-.055.3576-.112.7274-.1264%201.1762-.0142.4368.0404.8909.0932%201.3301.1066.887.216%201.8003-.2075%202.7014a3.5272%203.5272%200%200%201-.1876-.3856c-.0527-.1276-.1669-.3326-.3251-.6162-.6156-1.1041-2.0574-3.6896-1.3193-4.7446.3795-.5427%201.3408-.5661%202.1781-.463zm.2284%207.0137a12.3762%2012.3762%200%200%200-.0853-.1074l-.0355-.0444c.7262-1.1995.5842-2.3862.4578-3.4385-.0519-.4318-.1009-.8396-.0885-1.2226.0129-.4061.0666-.7543.1185-1.0911.0639-.415.1288-.8443.1109-1.3505.0134-.0531.0188-.1158.0118-.1902-.0457-.4855-.5999-1.938-1.7294-3.253-.6076-.7073-1.4896-1.4972-2.6889-2.0395.5251-.1066%201.2328-.2035%202.0244-.1859%202.0515.0456%203.6746.8135%204.8242%202.2824a.908.908%200%200%201%20.0667.1002c.7231%201.3556-.2762%206.2751-2.9867%2010.5405zm-8.8166-6.1162c-.025.1794-.3089.4225-.6211.4225a.5821.5821%200%200%201-.0809-.0056c-.1873-.026-.3765-.144-.5059-.3156-.0458-.0605-.1203-.178-.1055-.2844.0055-.0401.0261-.0985.0925-.1488.1182-.0894.3518-.1226.6096-.0867.3163.0441.6426.1938.6113.4186zm7.9305-.4114c.0111.0792-.049.201-.1531.3102-.0683.0717-.212.1961-.4079.2232a.5456.5456%200%200%201-.075.0052c-.2935%200-.5414-.2344-.5607-.3717-.024-.1765.2641-.3106.5611-.352.297-.0414.6111.0088.6356.1851z%22%2F%3E%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="1061" y="216" as="geometry" />
+        </mxCell>
+        <mxCell id="cb32" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="• PostgreSQL 18 efêmero + Setup CI&lt;br&gt;• prisma migrate deploy do zero (sem seed)" vertex="1">
+          <mxGeometry height="64" width="188" x="988" y="262" as="geometry" />
+        </mxCell>
+        <mxCell id="card38" parent="1" style="rounded=1;arcSize=10;fillColor=#eef4ff;strokeColor=#b9cdf3;strokeWidth=1.6;html=1;" value="" vertex="1">
+          <mxGeometry height="158" width="280" x="473" y="378" as="geometry" />
+        </mxCell>
+        <mxCell id="cbar39" parent="1" style="rounded=1;arcSize=60;fillColor=#1f6feb;strokeColor=none;" value="" vertex="1">
+          <mxGeometry height="6" width="280" x="473" y="378" as="geometry" />
+        </mxCell>
+        <mxCell id="ct40" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=13;fontStyle=1;fontColor=#0f172a;" value="6. Open Pull Request" vertex="1">
+          <mxGeometry height="20" width="260" x="485" y="392" as="geometry" />
+        </mxCell>
+        <mxCell id="ci41" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20fill%3D%22%231f2328%22%20role%3D%22img%22%20viewBox%3D%220%200%2024%2024%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Ctitle%3EGitHub%3C%2Ftitle%3E%3Cpath%20d%3D%22M12%20.297c-6.63%200-12%205.373-12%2012%200%205.303%203.438%209.8%208.205%2011.385.6.113.82-.258.82-.577%200-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422%2018.07%203.633%2017.7%203.633%2017.7c-1.087-.744.084-.729.084-.729%201.205.084%201.838%201.236%201.838%201.236%201.07%201.835%202.809%201.305%203.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93%200-1.31.465-2.38%201.235-3.22-.135-.303-.54-1.523.105-3.176%200%200%201.005-.322%203.3%201.23.96-.267%201.98-.399%203-.405%201.02.006%202.04.138%203%20.405%202.28-1.552%203.285-1.23%203.285-1.23.645%201.653.24%202.873.12%203.176.765.84%201.23%201.91%201.23%203.22%200%204.61-2.805%205.625-5.475%205.92.42.36.81%201.096.81%202.22%200%201.606-.015%202.896-.015%203.286%200%20.315.21.69.825.57C20.565%2022.092%2024%2017.592%2024%2012.297c0-6.627-5.373-12-12-12%22%2F%3E%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="593" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="cb42" parent="1" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;fontSize=11;fontColor=#475569;spacing=1;spacingLeft=2;" value="• Depende dos 5 jobs acima&lt;br&gt;• Abre o PR para main com o GitHub App, se ainda não existir" vertex="1">
+          <mxGeometry height="64" width="258" x="485" y="464" as="geometry" />
+        </mxCell>
+        <mxCell id="pill43" parent="1" style="rounded=1;arcSize=50;fillColor=#ecfdf5;strokeColor=#10b981;strokeWidth=1.8;html=1;fontSize=12;fontStyle=1;fontColor=#1e293b;align=center;spacingLeft=18;" value="Pull Request para main criado&lt;br&gt;(se ainda não existir)" vertex="1">
+          <mxGeometry height="50" width="300" x="463" y="574" as="geometry" />
+        </mxCell>
+        <mxCell id="pi44" parent="1" style="shape=image;verticalLabelPosition=bottom;labelBackgroundColor=none;verticalAlign=top;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3C!--%20%40license%20lucide-static%20v0.469.0%20-%20ISC%20--%3E%0A%3Csvg%0A%20%20class%3D%22lucide%20lucide-circle-check-big%22%0A%20%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%0A%20%20width%3D%2224%22%0A%20%20height%3D%2224%22%0A%20%20viewBox%3D%220%200%2024%2024%22%0A%20%20fill%3D%22none%22%0A%20%20stroke%3D%22%2310b981%22%0A%20%20stroke-width%3D%222%22%0A%20%20stroke-linecap%3D%22round%22%0A%20%20stroke-linejoin%3D%22round%22%0A%3E%0A%20%20%3Cpath%20d%3D%22M21.801%2010A10%2010%200%201%201%2017%203.335%22%20%2F%3E%0A%20%20%3Cpath%20d%3D%22m9%2011%203%203L22%204%22%20%2F%3E%0A%3C%2Fsvg%3E;" value="" vertex="1">
+          <mxGeometry height="22" width="22" x="477" y="588" as="geometry" />
+        </mxCell>
+        <mxCell id="note45" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=11.5;fontColor=#94a3b8;fontStyle=2;" value="5 jobs em paralelo," vertex="1">
+          <mxGeometry height="40" width="160" x="922" y="106" as="geometry" />
+        </mxCell>
+        <mxCell id="note46" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=11.5;fontColor=#94a3b8;fontStyle=2;" value="cada um em runner isolado" vertex="1">
+          <mxGeometry height="40" width="160" x="922" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="note47" parent="1" style="text;html=1;align=left;verticalAlign=top;fontSize=11.5;fontColor=#64748b;fontStyle=2;" value="Setup CI = composite .github/actions/setup-ci: instala o Node 24 (cache de npm), roda npm ci e gera o Prisma Client — reaproveitado por lint, testes, build e validação de banco." vertex="1">
+          <mxGeometry height="40" width="160" x="40" y="634" as="geometry" />
+        </mxCell>
+        <mxCell id="e48" edge="1" parent="1" source="pill6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card8" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="161" />
+              <mxPoint x="145" y="161" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e49" edge="1" parent="1" source="pill6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card13" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="161" />
+              <mxPoint x="379" y="161" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e50" edge="1" parent="1" source="pill6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card18" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="161" />
+              <mxPoint x="613" y="161" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e51" edge="1" parent="1" source="pill6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card23" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="161" />
+              <mxPoint x="847" y="161" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e52" edge="1" parent="1" source="pill6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card28" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="161" />
+              <mxPoint x="1081" y="161" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e54" edge="1" parent="1" source="card8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="145" y="356" />
+              <mxPoint x="613" y="356" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e55" edge="1" parent="1" source="card13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="379" y="356" />
+              <mxPoint x="613" y="356" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e56" edge="1" parent="1" source="card18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="613" y="356" />
+              <mxPoint x="613" y="356" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e57" edge="1" parent="1" source="card23" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="847" y="356" />
+              <mxPoint x="613" y="356" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e58" edge="1" parent="1" source="card28" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="card38" value="">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1081" y="356" />
+              <mxPoint x="613" y="356" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e60" edge="1" parent="1" source="card38" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#64748b;strokeWidth=2;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="pill43" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
