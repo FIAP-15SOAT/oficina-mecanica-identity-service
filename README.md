@@ -16,14 +16,16 @@
 
 ## Sobre
 
-Serviço NestJS da solução Oficina Mecânica (FIAP 15SOAT), dono do contexto de identidade dos funcionários. É o único cliente do próprio PostgreSQL e do próprio Valkey: nenhum outro serviço lê nem escreve neles.
+Serviço NestJS da solução Oficina Mecânica (FIAP 15SOAT), dono do contexto de identidade dos funcionários. É o único cliente do próprio PostgreSQL e do próprio Valkey (cache em memória compatível com Redis): nenhum outro serviço lê nem escreve neles.
 
 ### Responsabilidade do Identity
 
-- Dono dos usuários funcionários, dos papéis (`ADMIN`, `MECHANIC` e `ATTENDANT`) e das credenciais, e da redefinição de senha.
-- Emissor do token de acesso de funcionário, um JWT assinado em RS256 (chave privada no Identity; os outros serviços validam com a chave pública, sem consultá-lo).
-- Publicará os e-mails de conta (senha inicial e código de redefinição) como mensagens `notification.email.send` no tópico SNS FIFO `oficina-events.fifo`; a Lambda de notificação, a função `oficina-mecanica-lambda-notification`, lê essas mensagens da fila SQS FIFO `notification.fifo` e envia o e-mail. A infraestrutura de publicação (outbox e relay) já existe. O serviço não consome nenhuma fila.
-- Valida localmente o token RS256 de funcionário em toda rota protegida e recusa token de cliente.
+O serviço ainda não tem rotas de negócio (veja [O que a API expõe hoje](#o-que-a-api-expõe-hoje)). O papel dele na solução é:
+
+- Ser o dono dos usuários funcionários, dos papéis (`ADMIN`, `MECHANIC` e `ATTENDANT`) e das credenciais, e da redefinição de senha.
+- Emitir o token de acesso de funcionário, um JWT assinado em RS256 (chave privada no Identity; os outros serviços validam com a chave pública, sem consultá-lo).
+- Publicar os e-mails de conta (senha inicial e código de redefinição) como mensagens `notification.email.send` no tópico SNS FIFO `oficina-events.fifo`; a Lambda de notificação, a função `oficina-mecanica-lambda-notification`, lê essas mensagens da fila SQS FIFO `notification.fifo` e envia o e-mail. A infraestrutura de publicação já existe: o outbox (tabela onde a mensagem é gravada na mesma transação do dado) e o relay (rotina que lê o outbox e publica no SNS). O serviço não consome nenhuma fila.
+- Validar localmente o token RS256 de funcionário em toda rota protegida e recusar token de cliente.
 
 ### O que a API expõe hoje
 
@@ -36,11 +38,11 @@ Só o que o esqueleto entrega: `GET /api/health/live`, `GET /api/health/ready` e
 - **ORM**: Prisma 7 (driver `@prisma/adapter-pg`, client gerado em `app/prisma/generated/`)
 - **Banco de dados**: PostgreSQL 18 (schema com a tabela `outbox`)
 - **Mensageria**: publicação no Amazon SNS FIFO (`@aws-sdk/client-sns`) com outbox transacional; LocalStack 4.14.0 (emulador local dos serviços AWS) em desenvolvimento
-- **Cache**: Valkey 9.1 (ElastiCache no cluster) via `ioredis`, cache-aside
+- **Cache**: Valkey 9.1 (ElastiCache no cluster) via `ioredis`, no padrão cache-aside (lê do cache e, na falta, do banco, gravando o resultado no cache)
 - **Autenticação**: token de funcionário RS256 validado localmente com `passport-jwt`
 - **Observabilidade**: logs JSON no stdout (`pino` + `nestjs-pino`) e traces e métricas pelo OpenTelemetry
 - **Documentação da API**: Swagger/OpenAPI (`@nestjs/swagger`)
-- **Testes**: Jest 30 (unitários com mocks tipados e E2E com Testcontainers: PostgreSQL 18, Valkey 9.1 e LocalStack 4.14.0)
+- **Testes**: Jest 30 (unitários com mocks tipados e E2E com Testcontainers, biblioteca que sobe containers Docker descartáveis para os testes: PostgreSQL 18, Valkey 9.1 e LocalStack 4.14.0)
 - **Qualidade e segurança**: SonarQube Cloud (SAST) e OWASP ZAP (DAST)
 - **Containerização**: Docker (multi-stage `node:24-alpine`) + Docker Compose
 - **Linting**: ESLint 10 + Prettier 3

@@ -14,7 +14,7 @@ Regere o PNG sempre que o `.puml` mudar.
 ```bash
 # A partir de docs/c4: gerar o PNG (o PlantUML grava o fonte nos metadados do PNG)
 mkdir -p images
-docker run --rm -i plantuml/plantuml:latest -tpng -pipe < identity-component.puml > images/c4-component.png
+docker run --rm -i plantuml/plantuml:1.2026.6 -tpng -pipe < identity-component.puml > images/c4-component.png
 ```
 
 ## Elementos
