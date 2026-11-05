@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: identity
+  labels:
+    app.kubernetes.io/name: identity-service
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  # No `replicas`: the HPA owns the count, and a value here would revert it on every apply.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: identity-service
+  template:
+    metadata:
+      # Datadog Unified Service Tagging. It is the only way for the collector
+      # to assign `service` and `env` to container logs: logs do not go through
+      # OTLP (OTEL_LOGS_EXPORTER=none in 02-identity-configmap.yaml), so the agent
+      # falls back to the image name, while APM, which reads the OTel resource,
+      # reports `oficina-mecanica-identity-service`.
+      # Two names for the same application break the Logs tab of the service
+      # page and any log-derived metric.
+      #
+      # These values are MIRRORED, not derived: a Kubernetes label cannot
+      # reference a ConfigMap. `service` must stay equal to OTEL_SERVICE_NAME
+      # and `env` to NODE_ENV, both in 02-identity-configmap.yaml, where the
+      # OTel resource takes service.name and deployment.environment.name from.
+      # Change it there, change it here (there is no automatic check).
+      # `version` is the image SHA, rendered by the CD.
+      labels:
+        app.kubernetes.io/name: identity-service
+        app.kubernetes.io/part-of: oficina-mecanica
+        tags.datadoghq.com/service: oficina-mecanica-identity-service
+        tags.datadoghq.com/env: production
+        tags.datadoghq.com/version: VERSION_PLACEHOLDER
+    spec:
+      # > drain window (10 s) + server close + $disconnect() + margin.
+      # Exceeding it means SIGKILL; kept low on purpose, because it lengthens
+      # node drain and eviction. It does not consume the CD rollout gate: pods
+      # with a DeletionTimestamp leave the ReplicaSet's active count.
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: api
+          image: IMAGE_URI_PLACEHOLDER
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          envFrom:
+            - configMapRef:
+                name: identity-config
+            - secretRef:
+                name: database-credentials
+            - secretRef:
+                name: cache-credentials
+            - secretRef:
+                name: jwt-public-keys
+          startupProbe:
+            httpGet:
+              path: /api/health/live
+              port: 3000
+            # 12 x 5 s = 60 s of budget, only for the application boot: the
+            # Prisma connection is lazy, so no database work happens here.
+            # Must stay below the CD rollout gate's --timeout=180s.
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /api/health/live
+              port: 3000
+            # 3 x 20 s = 60 s of tolerance before restarting: tightening that
+            # product turns a transient hiccup into a restart. The 5 s timeout
+            # is how much event loop blocking is tolerated under
+            # limits.cpu 500m, with the synchronous log destination.
+            initialDelaySeconds: 0
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /api/health/ready
+              port: 3000
+            # timeoutSeconds > the check's own deadline (3.5 s) + network margin.
+            # That deadline, in turn, is above the pool's connectionTimeoutMillis
+            # (3 s): a shorter deadline would mask pool saturation as 'timeout'
+            # and erase the 'pool' category.
+            # failureThreshold errs on the side of removing late: since the RDS
+            # is shared, a low value would take every replica out at once
+            # on a transient blip.
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
