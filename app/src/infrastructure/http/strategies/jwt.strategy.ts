@@ -24,7 +24,7 @@ interface VerifiedToken {
 
 const USER_ROLES: readonly unknown[] = Object.values(UserRole);
 
-// The token is trusted on its own signature: this service does not look the user up in Identity.
+// The token is trusted on its own signature: the guard does not load the user from the database.
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   private readonly keyId: string;

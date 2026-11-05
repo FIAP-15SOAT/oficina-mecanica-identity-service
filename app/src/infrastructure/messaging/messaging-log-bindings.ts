@@ -1,10 +1,10 @@
 import { LOGICAL_FIELDS } from '@infrastructure/logging/field-registry';
 
 export interface MessagingLogContext {
-  system: 'aws_sqs' | 'aws_sns';
+  system: 'aws_sns';
   destination: string;
   messageId: string;
-  operation: 'publish' | 'process';
+  operation: 'publish';
   type?: string;
   workOrderId?: string | null;
 }
