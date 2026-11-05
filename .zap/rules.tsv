@@ -1,0 +1,18 @@
+# ZAP scan rule configuration for the DAST workflow (.github/workflows/dast.yml)
+# Format: <ruleId><TAB><WARN|IGNORE|FAIL><TAB>(rule name — informational)
+# Change WARN to IGNORE to silence a rule, or to FAIL to make it fail the run.
+#
+# These rules do not apply to this API: authentication is a stateless
+# Authorization: Bearer <JWT> header, and the API sets no session cookie — so
+# anti-CSRF tokens and cookie security flags are structural false positives here.
+10202	IGNORE	(Absence of Anti-CSRF Tokens)
+10010	IGNORE	(Cookie No HttpOnly Flag)
+10011	IGNORE	(Cookie Without Secure Flag)
+10054	IGNORE	(Cookie Without SameSite Attribute)
+#
+# Reflected input echoed back in a JSON response is not XSS for a pure JSON API:
+# the Content-Type is application/json (never text/html), so browsers do not execute
+# it — ZAP itself raises this only at LOW confidence for that reason. Calibrated out
+# up front for any request value the API echoes in a JSON body, for example the path
+# in the 404 message of GET /api/health/live/<script>.
+40014	IGNORE	(Cross Site Scripting Weakness - Persistent in JSON Response)

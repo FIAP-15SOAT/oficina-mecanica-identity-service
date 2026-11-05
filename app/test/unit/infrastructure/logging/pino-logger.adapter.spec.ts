@@ -1,0 +1,295 @@
+import { Logger as NestLogger, PinoLogger } from 'nestjs-pino';
+
+import { defineLogEvent } from '@application/logging/log-event';
+import * as fieldRegistry from '@infrastructure/logging/field-registry';
+import { buildLoggerParams } from '@infrastructure/logging/logging.module';
+import * as payloadSanitizer from '@infrastructure/logging/redaction/payload-sanitizer';
+import { PinoLoggerAdapter } from '@infrastructure/logging/pino-logger.adapter';
+import { TECHNICAL_EVENTS } from '@infrastructure/logging/technical-event.catalog';
+import { REDACTED } from '@infrastructure/logging/redaction/text-sanitizer';
+import { captureDiagnostics } from '../../../helpers/diagnostics-capture';
+
+// nestjs-pino 5 builds its root logger once per process and exposes no reset, so every
+// PinoLogger in this file shares one destination and each test points it at its own buffer.
+let sink: (line: string) => void = () => undefined;
+const params = buildLoggerParams({ write: (line: string) => sink(line) }, 'debug');
+
+function captureLines(): Record<string, unknown>[] {
+  const lines: Record<string, unknown>[] = [];
+  sink = (line) => lines.push(JSON.parse(line) as Record<string, unknown>);
+  return lines;
+}
+
+describe('PinoLoggerAdapter', () => {
+  let lines: Record<string, unknown>[];
+  let pinoLogger: PinoLogger;
+  let adapter: PinoLoggerAdapter;
+
+  beforeEach(() => {
+    lines = captureLines();
+    pinoLogger = new PinoLogger(params);
+    adapter = new PinoLoggerAdapter(pinoLogger);
+  });
+
+  it('should emit the envelope with a text level and an ISO-8601 UTC timestamp', () => {
+    adapter.info('service ready');
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0].level).toBe('info');
+    expect(lines[0].message).toBe('service ready');
+    expect(lines[0].timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+
+  it('should preserve request.id when a scoped logger is used inside a request context', () => {
+    pinoLogger.runInContext(
+      () => {
+        adapter.forContext('OutboxRelayService').info('outbox relayed');
+      },
+      { bindings: { 'request.id': 'req-abc' } },
+    );
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]['request.id']).toBe('req-abc');
+    expect(lines[0]['otel.scope.name']).toBe('OutboxRelayService');
+  });
+
+  it('should keep request.id on every call made through the same scoped logger', () => {
+    const scoped = adapter.forContext('OutboxRelayService');
+
+    pinoLogger.runInContext(
+      () => {
+        scoped.info('first');
+        scoped.info('second');
+      },
+      { bindings: { 'request.id': 'req-abc' } },
+    );
+
+    expect(lines.map((line) => line['request.id'])).toEqual(['req-abc', 'req-abc']);
+  });
+
+  it('should not carry a scope from another correlated request', () => {
+    const scoped = adapter.forContext('OutboxRelayService');
+
+    pinoLogger.runInContext(() => scoped.info('first'), { bindings: { 'request.id': 'a' } });
+    pinoLogger.runInContext(() => scoped.info('second'), { bindings: { 'request.id': 'b' } });
+
+    expect(lines.map((line) => line['request.id'])).toEqual(['a', 'b']);
+  });
+
+  it('should map logical event fields to their physical telemetry keys', () => {
+    adapter.event(TECHNICAL_EVENTS.HEALTH_DEGRADED, {
+      dependencyName: 'postgres',
+      healthFailureCategory: 'timeout',
+    });
+
+    expect(lines[0]).toMatchObject({
+      level: 'warn',
+      message: TECHNICAL_EVENTS.HEALTH_DEGRADED.message,
+      'oficina.event.name': 'health.degraded',
+      'oficina.dependency.name': 'postgres',
+      'oficina.health.failure.category': 'timeout',
+    });
+    expect(lines[0]).not.toHaveProperty('dependencyName');
+  });
+
+  it('should omit optional event fields that are not provided', () => {
+    adapter.event(TECHNICAL_EVENTS.APPLICATION_SHUTDOWN, {});
+
+    expect(lines[0]['oficina.event.name']).toBe('app.shutdown');
+    expect(lines[0]).not.toHaveProperty('oficina.process.signal');
+  });
+
+  it('should omit an optional event field explicitly passed as undefined', () => {
+    adapter.event(TECHNICAL_EVENTS.APPLICATION_SHUTDOWN, { signal: undefined });
+
+    expect(lines[0]).not.toHaveProperty('oficina.process.signal');
+  });
+
+  it('should drop a field the registry does not know', () => {
+    const stderr = captureDiagnostics();
+
+    const rogue = defineLogEvent<{ workOrderId: string }>({
+      name: 'work_order.rogue',
+      message: 'rogue',
+      level: 'info',
+    });
+
+    adapter.event(rogue, { workOrderId: 'wo-1', unknownField: 'x' } as never);
+
+    expect(lines[0]['oficina.work_order.id']).toBe('wo-1');
+    expect(lines[0]).not.toHaveProperty('unknownField');
+    expect(String(stderr.spy.mock.calls[0][0])).toContain(
+      '"oficina.logging.failure.field":"unknownField"',
+    );
+
+    stderr.restore();
+  });
+
+  it('should route an error to the exception attributes without a cause namespace', () => {
+    const cause = new TypeError('camada de baixo');
+    const error = new Error('falha ao aprovar', { cause });
+
+    adapter.error('falha', error);
+
+    expect(lines[0]['exception.type']).toBe('TypeError');
+    expect(lines[0]['exception.message']).toBe('falha ao aprovar');
+    expect(lines[0]['exception.stacktrace']).toContain('Caused by:');
+    expect(Object.keys(lines[0]).some((key) => key.startsWith('exception.cause'))).toBe(false);
+  });
+
+  it('should emit a level line carrying only the envelope and the scope', () => {
+    adapter.forContext('Bootstrap').warn('TRUSTED_PROXY_CIDRS inválido');
+
+    expect(lines[0]).toMatchObject({
+      level: 'warn',
+      message: 'TRUSTED_PROXY_CIDRS inválido',
+      'otel.scope.name': 'Bootstrap',
+    });
+    expect(Object.keys(lines[0]).filter((key) => key.startsWith('oficina.'))).toEqual([]);
+  });
+
+  it('should emit debug through the same closed schema', () => {
+    adapter.debug('detalhe');
+
+    expect(lines[0].level).toBe('debug');
+    expect(lines[0].message).toBe('detalhe');
+  });
+
+  it('should emit an error line without an exception when none is given', () => {
+    adapter.error('falha sem exceção');
+
+    expect(lines[0].level).toBe('error');
+    expect(lines[0]).not.toHaveProperty('exception.type');
+  });
+
+  it('should write a single stderr diagnostic and not throw when emitting fails', () => {
+    const stderr = captureDiagnostics();
+    jest.spyOn(pinoLogger, 'info').mockImplementation(() => {
+      throw new Error('serialization failure');
+    });
+
+    expect(() => adapter.info('boom')).not.toThrow();
+    expect(stderr.spy).toHaveBeenCalledTimes(1);
+    expect(String(stderr.spy.mock.calls[0][0])).toContain('"message":"logging failure"');
+
+    stderr.restore();
+  });
+
+  it('should absorb a sanitizer failure raised while mapping event fields', () => {
+    const stderr = captureDiagnostics();
+    const sanitizer = jest.spyOn(payloadSanitizer, 'sanitizePayload').mockImplementation(() => {
+      throw new Error('sanitizer failure');
+    });
+
+    expect(() =>
+      adapter.event(TECHNICAL_EVENTS.HEALTH_DEGRADED, {
+        dependencyName: 'postgres',
+        healthFailureCategory: 'timeout',
+      }),
+    ).not.toThrow();
+
+    expect(lines).toHaveLength(0);
+    expect(stderr.spy).toHaveBeenCalledTimes(1);
+
+    sanitizer.mockRestore();
+    stderr.restore();
+  });
+
+  it('should report the field and drop it when the registry does not know the logical name', () => {
+    const stderr = captureDiagnostics();
+
+    adapter.event(TECHNICAL_EVENTS.HEALTH_DEGRADED, {
+      dependencyName: 'postgres',
+      healthFailureCategory: 'timeout',
+    });
+
+    expect(stderr.spy).not.toHaveBeenCalled();
+    expect(lines[0]['oficina.health.failure.category']).toBe('timeout');
+
+    stderr.restore();
+  });
+
+  it('should mask a field the registry classifies as personal data', () => {
+    // The identity vocabulary declares no personal data yet, so one declared key is reclassified.
+    const resolve = jest.spyOn(fieldRegistry, 'resolveLogicalField').mockReturnValueOnce({
+      key: 'oficina.dependency.name',
+      type: 'string',
+      cardinality: 'fixed',
+      owner: 'infrastructure-service',
+      sensitivity: 'pii',
+    });
+
+    adapter.event(TECHNICAL_EVENTS.HEALTH_DEGRADED, {
+      dependencyName: 'maria.silva@gmail.com',
+      healthFailureCategory: 'timeout',
+    });
+    resolve.mockRestore();
+
+    expect(lines[0]['oficina.dependency.name']).toBe('ma***va@gmail.com');
+    expect(lines[0]['oficina.health.failure.category']).toBe('timeout');
+  });
+});
+
+describe('PinoLoggerAdapter — event with an attached exception', () => {
+  it('should carry the exception attributes alongside the event fields', () => {
+    const lines = captureLines();
+    const adapter = new PinoLoggerAdapter(new PinoLogger(params));
+
+    adapter.event(
+      TECHNICAL_EVENTS.HEALTH_DEGRADED,
+      { dependencyName: 'postgres', healthFailureCategory: 'timeout' },
+      new TypeError('falhou'),
+    );
+
+    expect(lines[0]).toMatchObject({
+      'oficina.event.name': 'health.degraded',
+      'oficina.dependency.name': 'postgres',
+      'exception.type': 'TypeError',
+      'exception.message': 'falhou',
+    });
+  });
+});
+
+/**
+ * `message` is the only key present in every line that does not go through
+ * `formatters.log` — pino serializes it on a separate path. Worse: when the
+ * object carries `err` and no message, pino **lifts `err.message` raw** into
+ * the envelope, which is exactly what `nestjs-pino`'s bridge produces from
+ * Nest's `error(message, stack)` contract.
+ *
+ * Without the serializer, the line came out with `exception.message` redacted
+ * next to a `message` holding the whole connection string.
+ */
+describe('output — the message also goes through redaction', () => {
+  const SENSITIVE = 'postgresql://app:S3nh4Secreta@db:5432/oficina para maria.silva@gmail.com';
+
+  it('should sanitize a message emitted through the application port', () => {
+    const lines = captureLines();
+
+    new PinoLoggerAdapter(new PinoLogger(params)).warn(`falha em ${SENSITIVE}`);
+
+    expect(lines[0].message).not.toContain('S3nh4Secreta');
+    expect(lines[0].message).not.toContain('maria.silva@gmail.com');
+    expect(lines[0].message).toContain(REDACTED);
+  });
+
+  it('should sanitize the message the framework bridge lifts from err.message', () => {
+    const lines = captureLines();
+
+    const bridge = new NestLogger(new PinoLogger(params), params);
+
+    bridge.error(`falha em ${SENSITIVE}`, 'Error: x\n    at y', 'InstanceLoader');
+
+    expect(lines[0].message).not.toContain('S3nh4Secreta');
+    expect(lines[0].message).not.toContain('maria.silva@gmail.com');
+    expect(lines[0].message).toEqual(lines[0]['exception.message']);
+  });
+
+  it('should leave an ordinary message untouched', () => {
+    const lines = captureLines();
+
+    new PinoLoggerAdapter(new PinoLogger(params)).info('http server accepting connections');
+
+    expect(lines[0].message).toBe('http server accepting connections');
+  });
+});
