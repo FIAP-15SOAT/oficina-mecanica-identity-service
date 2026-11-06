@@ -24,7 +24,7 @@ import { TestContext, setupTestApp, teardownTestApp } from '../helpers/test-app.
 
 interface DeliveredMessage {
   messageId: string;
-  workOrderId: string;
+  workOrderId: string | null;
   traceparent?: string;
 }
 
@@ -45,7 +45,8 @@ async function waitFor(
 }
 
 // The service has no use case yet: messages are written through the unit of work, as one would.
-// Every test uses its own work order id (the FIFO group), so tests never block each other.
+// The service's own messages have no work order; most tests still set a random work order id only
+// to get a FIFO group of their own, so tests never block each other.
 describe('Outbox (E2E)', () => {
   const tracerProvider = new NodeTracerProvider();
   // notification.fifo subscribes notification.email.send (filter policy of the copied
@@ -113,7 +114,7 @@ describe('Outbox (E2E)', () => {
     propagation.disable();
   });
 
-  function publishedIds(workOrderId: string): string[] {
+  function findPublishedMessageIdsByWorkOrderId(workOrderId: string | null): string[] {
     return published
       .filter((input) => JSON.parse(input.Message as string).workOrderId === workOrderId)
       .map((input) => input.MessageDeduplicationId as string);
@@ -134,7 +135,11 @@ describe('Outbox (E2E)', () => {
     }
 
     for (const message of Messages) {
-      const body = JSON.parse(message.Body as string) as { messageId: string; workOrderId: string };
+      const body = JSON.parse(message.Body as string) as {
+        messageId: string;
+        workOrderId: string | null;
+      };
+
       delivered.push({
         messageId: body.messageId,
         workOrderId: body.workOrderId,
@@ -153,7 +158,10 @@ describe('Outbox (E2E)', () => {
     );
   }
 
-  async function waitForDelivered(workOrderId: string, count: number): Promise<DeliveredMessage[]> {
+  async function waitForDelivered(
+    workOrderId: string | null,
+    count: number,
+  ): Promise<DeliveredMessage[]> {
     const ofGroup = () => delivered.filter((message) => message.workOrderId === workOrderId);
 
     await waitFor(async () => {
@@ -164,7 +172,7 @@ describe('Outbox (E2E)', () => {
     return ofGroup();
   }
 
-  function addCommitted(workOrderId: string): Promise<void> {
+  function createOutboxMessage(workOrderId: string | null): Promise<void> {
     return unitOfWork.executeTransaction((repositories) =>
       repositories.outbox.add({
         type: MESSAGE_TYPE,
@@ -174,7 +182,7 @@ describe('Outbox (E2E)', () => {
     );
   }
 
-  async function messageIdsOf(workOrderId: string): Promise<string[]> {
+  async function findOutboxMessageIdsByWorkOrderId(workOrderId: string | null): Promise<string[]> {
     const rows = await ctx.prisma.outboxMessage.findMany({
       where: { workOrderId },
       orderBy: { id: 'asc' },
@@ -186,6 +194,7 @@ describe('Outbox (E2E)', () => {
   // Runs work while another session holds the relay's advisory lock, so no relay publishes meanwhile.
   async function withRelayLock<T>(work: () => Promise<T>): Promise<T> {
     const client = new Client({ connectionString: ctx.postgresContainer.getConnectionUri() });
+
     await client.connect();
 
     try {
@@ -219,8 +228,8 @@ describe('Outbox (E2E)', () => {
 
     const { traceparent, messageIds } = await withRelayLock(async () => {
       const written = await trace.getTracer('outbox-e2e').startActiveSpan('write', async (span) => {
-        await addCommitted(workOrderId);
-        await addCommitted(workOrderId);
+        await createOutboxMessage(workOrderId);
+        await createOutboxMessage(workOrderId);
         span.end();
 
         const carrier: Record<string, string> = {};
@@ -229,7 +238,10 @@ describe('Outbox (E2E)', () => {
         return carrier.traceparent;
       });
 
-      return { traceparent: written, messageIds: await messageIdsOf(workOrderId) };
+      return {
+        traceparent: written,
+        messageIds: await findOutboxMessageIdsByWorkOrderId(workOrderId),
+      };
     });
 
     const received = await waitForDelivered(workOrderId, 2);
@@ -237,7 +249,23 @@ describe('Outbox (E2E)', () => {
     expect(received).toEqual(
       messageIds.map((messageId) => ({ messageId, workOrderId, traceparent })),
     );
-    expect(await messageIdsOf(workOrderId)).toEqual([]);
+    expect(await findOutboxMessageIdsByWorkOrderId(workOrderId)).toEqual([]);
+  });
+
+  it('should publish a message without a work order in a FIFO group of its own', async () => {
+    const [messageId] = await withRelayLock(async () => {
+      await createOutboxMessage(null);
+
+      return findOutboxMessageIdsByWorkOrderId(null);
+    });
+
+    const received = await waitForDelivered(null, 1);
+
+    expect(received.map((message) => message.messageId)).toEqual([messageId]);
+
+    expect(
+      published.find((input) => input.MessageDeduplicationId === messageId)?.MessageGroupId,
+    ).toBe(messageId);
   });
 
   it('should not publish a message from a rolled back transaction', async () => {
@@ -257,10 +285,10 @@ describe('Outbox (E2E)', () => {
       ).rejects.toThrow('rollback');
 
       // With the relay locked out, a row that wrongly committed would still be in the table.
-      expect(await messageIdsOf(workOrderId)).toEqual([]);
+      expect(await findOutboxMessageIdsByWorkOrderId(workOrderId)).toEqual([]);
 
-      await addCommitted(workOrderId);
-      const messageIds = await messageIdsOf(workOrderId);
+      await createOutboxMessage(workOrderId);
+      const messageIds = await findOutboxMessageIdsByWorkOrderId(workOrderId);
       expect(messageIds).toHaveLength(1);
 
       return messageIds[0];
@@ -269,7 +297,7 @@ describe('Outbox (E2E)', () => {
     const received = await waitForDelivered(workOrderId, 1);
 
     expect(received.map((message) => message.messageId)).toEqual([committed]);
-    expect(publishedIds(workOrderId)).toEqual([committed]);
+    expect(findPublishedMessageIdsByWorkOrderId(workOrderId)).toEqual([committed]);
   });
 
   it('should publish each message once, in creation order, with two relays running at the same time', async () => {
@@ -277,10 +305,10 @@ describe('Outbox (E2E)', () => {
 
     const messageIds = await withRelayLock(async () => {
       for (let index = 0; index < 15; index++) {
-        await addCommitted(workOrderId);
+        await createOutboxMessage(workOrderId);
       }
 
-      return messageIdsOf(workOrderId);
+      return findOutboxMessageIdsByWorkOrderId(workOrderId);
     });
 
     // A second replica next to the application's own relay, over the same database and topic.
@@ -293,7 +321,7 @@ describe('Outbox (E2E)', () => {
     );
     const application = ctx.app.get(OutboxRelayService);
     const drain = async (relay: OutboxRelayService) => {
-      while ((await messageIdsOf(workOrderId)).length > 0) {
+      while ((await findOutboxMessageIdsByWorkOrderId(workOrderId)).length > 0) {
         await relay.runBatch();
       }
     };
@@ -302,7 +330,7 @@ describe('Outbox (E2E)', () => {
 
     const received = await waitForDelivered(workOrderId, messageIds.length);
 
-    expect(publishedIds(workOrderId)).toEqual(messageIds);
+    expect(findPublishedMessageIdsByWorkOrderId(workOrderId)).toEqual(messageIds);
     expect(received.map((message) => message.messageId)).toEqual(messageIds);
   });
 });
