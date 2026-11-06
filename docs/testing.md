@@ -17,11 +17,11 @@ Jest 30 com `ts-jest`, em `app/test/unit/`, que espelha `app/src/`. Teste de use
 npm run test:cov
 ```
 
-O `coverageThreshold` global exige 100% de linhas, statements, funções e branches, e o comando falha abaixo disso. É o mesmo lcov (`app/coverage/lcov.info`) que o workflow de SAST envia ao Sonar; o badge do README mostra a cobertura que o Sonar mede dessa execução. Ficam fora da cobertura os módulos Nest, `main.ts`, `otel.ts`, enums, configs, exceções, DTOs e o `prisma.service.ts` (veja `collectCoverageFrom` no `package.json`).
+O `coverageThreshold` global exige 100% de linhas, statements, funções e branches, e o comando falha abaixo disso. É o mesmo lcov, o relatório de cobertura no formato LCOV (`app/coverage/lcov.info`), que o workflow de SAST envia ao Sonar; o badge do README mostra a cobertura que o Sonar mede dessa execução. Ficam fora da cobertura os módulos Nest, `main.ts`, `otel.ts`, enums, configs, exceções, DTOs e o `prisma.service.ts` (veja `collectCoverageFrom` no `package.json`).
 
 ## E2E
 
-Jest com Supertest e **Testcontainers** em `app/test/e2e/`, sem mocks de infraestrutura: PostgreSQL 18, Valkey 9.1 e, no teste do outbox, LocalStack 4.14.0 com a topologia real de `app/localstack/init-topology.sh`. O helper `setupTestApp` (`app/test/helpers/test-app.helper.ts`) sobe o `AppModule` com o mesmo `configureApp` do `main.ts`, aplica a migration e, com `withMessaging`, liga o relay do outbox de verdade. Requer Docker.
+Jest com Supertest (biblioteca que faz requisições HTTP à aplicação dentro do teste) e **Testcontainers** (biblioteca que sobe containers Docker descartáveis a partir do teste) em `app/test/e2e/`, sem mocks de infraestrutura: PostgreSQL 18, Valkey 9.1 (o cache em memória compatível com Redis) e, no teste do outbox, LocalStack 4.14.0, o emulador local dos serviços AWS, com a topologia real de `app/localstack/init-topology.sh`. O helper `setupTestApp` (`app/test/helpers/test-app.helper.ts`) sobe o `AppModule` com o mesmo `configureApp` do `main.ts`, aplica a migration e, com `withMessaging`, liga o relay do outbox de verdade. Requer Docker.
 
 ```bash
 # A partir de app/: E2E (a primeira execução baixa as imagens, depois usa o cache local)
@@ -35,7 +35,7 @@ Suítes atuais (seis):
 - logging;
 - telemetria;
 - filtro de exceções;
-- outbox (relay, ordem, transação desfeita e duas réplicas do relay). Como o serviço não consome fila, o teste lê a fila assinante `notification.fifo` com o `@aws-sdk/client-sqs` (só em `devDependencies`) para conferir o que o relay publicou.
+- outbox (relay, ordem, mensagem sem ordem de serviço num grupo FIFO só dela, transação desfeita e duas réplicas do relay). Como o serviço não consome fila, o teste lê a fila assinante `notification.fifo` com o `@aws-sdk/client-sqs` (só em `devDependencies`) para conferir o que o relay publicou.
 
 O token de teste é assinado por `app/test/helpers/staff-jwt.helper.ts` com um par RS256 gerado em memória a cada execução; nenhuma chave é versionada.
 

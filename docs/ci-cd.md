@@ -1,6 +1,6 @@
 # CI/CD
 
-Quatro workflows do GitHub Actions em `.github/workflows/`, um por responsabilidade (veja a [ADR 0002](adr/0002-pipelines-ci-cd-sast-dast-com-rollback.md)).
+Quatro workflows do GitHub Actions em `.github/workflows/`, um por responsabilidade: CI, CD, SAST (a análise estática do código, no SonarQube Cloud) e DAST (o teste dinâmico de segurança contra a API no ar, com o OWASP ZAP). Veja a [ADR 0002](adr/0002-pipelines-ci-cd-sast-dast-com-rollback.md).
 
 > O CI dispara **só em push nas branches `feature/**` e `fix/**`**. Push em outro nome de branch não roda nenhum check de CI.
 
@@ -17,16 +17,16 @@ Os jobs que precisam do Node usam a ação composta `.github/actions/setup-ci`, 
 
 ![CI](diagrams/ci-workflow.png)
 
-`Lint`, `Unit Tests` (`npm run test:cov`), `E2E Tests` (`npm run test:e2e:cov`), `Build` (`npm run build` e o smoke do preload de telemetria) e `DB Validation` (`prisma migrate deploy` num PostgreSQL 18 descartável, sem seed) rodam em paralelo. Só quando todos passam o job `Open Pull Request` abre o PR para a `main` com o GitHub App, se ainda não houver um aberto.
+`Lint`, `Unit Tests` (`npm run test:cov`), `E2E Tests` (`npm run test:e2e:cov`), `Build` (`npm run build` e o smoke, um teste rápido que confere que o preload de telemetria emite sinais) e `DB Validation` (`prisma migrate deploy` num PostgreSQL 18 descartável, sem seed) rodam em paralelo. Só quando todos passam o job `Open Pull Request` abre o PR para a `main` com o GitHub App, se ainda não houver um aberto.
 
 ## CD
 
 ![CD](diagrams/cd-workflow.png)
 
 1. `Build and Push App Image`: constrói a imagem e a publica em `ecr-oficina-mecanica-identity` (o repositório de imagens do Amazon ECR deste serviço) com a tag do SHA e `latest`. No `workflow_dispatch` com `image_tag`, só confere que a tag já existe no ECR (rollback manual, sem build).
-2. `Prepare Deployment Configuration`: confere que as variables batem com os manifests, valida `STAFF_JWT_PUBLIC_KEY` e `STAFF_JWT_KEY_ID`, descobre no RDS e no Secrets Manager a credencial do banco e monta `DATABASE_URL` em `database-credentials` ([ADR 0004](adr/0004-materializacao-da-credencial-do-banco-no-cd.md)), monta `CACHE_URL` (`rediss://`) em `cache-credentials`, aplica `jwt-public-keys` e o ConfigMap `identity-config` (com `MESSAGING_TOPIC_ARN` renderizado com a conta da AWS).
+2. `Prepare Deployment Configuration`: confere que as variables batem com os manifests, valida `STAFF_JWT_PUBLIC_KEY` e `STAFF_JWT_KEY_ID`, descobre no Amazon RDS (o PostgreSQL gerenciado da AWS) e no AWS Secrets Manager (o cofre de segredos onde o RDS guarda a senha) a credencial do banco e monta `DATABASE_URL` em `database-credentials` ([ADR 0004](adr/0004-materializacao-da-credencial-do-banco-no-cd.md)), monta `CACHE_URL` (`rediss://`) em `cache-credentials`, aplica `jwt-public-keys` e o ConfigMap `identity-config` (com `MESSAGING_TOPIC_ARN` renderizado com a conta da AWS).
 3. `DB Migrate`: roda o Job `db-migrate-<run>` com `npx prisma migrate deploy` (sem seed) e espera o resultado. Pulado no rollback por `image_tag`.
-4. `App Deploy`: aplica Service, HPA e Deployment (com a imagem de tag imutável), espera o rollout e faz o smoke `GET /health/identity` pelo API Gateway (pulado com aviso se a API do gateway ainda não existe). Se o rollout ou o smoke falham, executa `kubectl rollout undo` e falha o job.
+4. `App Deploy`: aplica Service, HPA (o HorizontalPodAutoscaler, que ajusta o número de réplicas entre 1 e 2 pelo uso de CPU e memória) e Deployment (com a imagem de tag imutável), espera o rollout (a troca dos pods pela nova versão) e faz o smoke `GET /health/identity` pelo API Gateway (pulado com aviso se a API do gateway ainda não existe). Se o rollout ou o smoke falham, executa `kubectl rollout undo` e falha o job.
 
 Todos os jobs rodam no environment `production`, com `concurrency: production` sem cancelar um deploy em andamento. O deploy só acontece com `vars.ENABLE_DEPLOY == 'true'` ou por `workflow_dispatch`, na `main`.
 
@@ -34,7 +34,7 @@ Todos os jobs rodam no environment `production`, com `concurrency: production` s
 
 ![SAST](diagrams/sast-workflow.png)
 
-Roda os testes unitários com cobertura e envia o lcov unitário ao projeto `FIAP-15SOAT_oficina-mecanica-identity-service` no SonarQube Cloud, esperando o resultado do Quality Gate (`sonar.qualitygate.wait=true`).
+Roda os testes unitários com cobertura e envia o lcov unitário (o relatório de cobertura no formato LCOV) ao projeto `FIAP-15SOAT_oficina-mecanica-identity-service` no SonarQube Cloud, esperando o resultado do Quality Gate, o conjunto de critérios que aprova ou reprova a análise (`sonar.qualitygate.wait=true`).
 
 ## DAST
 
@@ -48,4 +48,4 @@ Os checks obrigatórios da `main` são `Lint`, `Unit Tests`, `E2E Tests`, `Build
 
 ## Fontes dos diagramas
 
-Os diagramas derivam dos diagramas de CI, CD, SAST e DAST do Work Order, mantidos o layout e o estilo e adaptados ao Identity: sem seed nem login, token de teste efêmero no DAST, SonarQube Scan v8.3.0, namespace `identity`, `ecr-oficina-mecanica-identity` e smoke em `/health/identity`. Os PNGs em `diagrams/` carregam o XML do draw.io embutido: abra-os no draw.io (File > Open) para editar. Os fontes estão em `diagrams/src/`.
+Os diagramas derivam dos diagramas de CI, CD, SAST e DAST do Work Order, mantidos o layout e o estilo e adaptados ao Identity: sem seed nem login, token de teste efêmero no DAST, SonarQube Scan v8.3.0, namespace `identity`, `ecr-oficina-mecanica-identity` e smoke em `/health/identity`. Os PNGs em `diagrams/` carregam o XML do draw.io embutido, então são o próprio fonte: abra-os no draw.io (File > Open) para editar.

@@ -12,7 +12,7 @@ Dois modos: tudo em containers (Quick Start do [README](../README.md)) ou a API 
 
 ## Portas locais por contexto
 
-Cada contexto (serviço) da solução publica no host a API em `3000 + índice`, o PostgreSQL em `5432 + índice`, o Valkey em `6379 + índice` e o LocalStack em `4566 + índice`. Assim os quatro stacks (work-order, identity, billing e inventory) sobem juntos sem colidir.
+Cada contexto (serviço) da solução publica no host a API em `3000 + índice`, o PostgreSQL em `5432 + índice`, o Valkey (o cache em memória compatível com Redis) em `6379 + índice` e o LocalStack em `4566 + índice`. Assim os quatro stacks (work-order, identity, billing e inventory) sobem juntos sem colidir.
 
 | Contexto | Índice | API | PostgreSQL | Valkey | LocalStack |
 | --- | --- | --- | --- | --- | --- |
@@ -36,8 +36,8 @@ Veja `app/.env.example`, que lista todas as variáveis que o código lê. As pri
 | `AWS_ENDPOINT_URL` | `http://localhost:4567` | LocalStack; só existe localmente |
 | `MESSAGING_TOPIC_ARN` | `arn:aws:sns:us-east-1:000000000000:oficina-events.fifo` | Tópico de publicação |
 | `CACHE_URL` | `redis://:valkey@localhost:6380` | Valkey (`rediss://` no cluster) |
-| `CACHE_TTL_SECONDS` | `43200` | TTL das entradas |
-| `ALLOWED_ORIGINS` | `http://localhost:3001` | Origens aceitas pelo CORS |
+| `CACHE_TTL_SECONDS` | `43200` | TTL (tempo de vida) das entradas do cache, em segundos |
+| `ALLOWED_ORIGINS` | `http://localhost:3001` | Origens aceitas pelo CORS, o controle do navegador sobre quais sites podem chamar a API |
 | `LOG_LEVEL` | `info` | `fatal` a `trace` ou `silent` |
 
 Não há variável de fila: o serviço só publica.
