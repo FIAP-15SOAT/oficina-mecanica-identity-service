@@ -1,6 +1,6 @@
 <div align="center">
 
-# Identity Service
+# 🔐 Identity Service
 
 **Usuários, papéis, credenciais e emissão do token de funcionário da oficina mecânica.**
 
@@ -14,47 +14,49 @@
 
 </div>
 
-## Sobre
+## 📋 Sobre
 
-Serviço NestJS da solução Oficina Mecânica (FIAP 15SOAT), dono do contexto de identidade dos funcionários. É o único cliente do próprio PostgreSQL e do próprio Valkey (cache em memória compatível com Redis): nenhum outro serviço lê nem escreve neles.
+Projeto acadêmico da pós-graduação em Arquitetura de Software da FIAP (turma 15SOAT). A solução da oficina mecânica é formada pelos serviços Work Order, Identity, Billing e Inventory, cada um dono do próprio banco e do próprio cache, que conversam por REST interno e por mensagens SNS/SQS FIFO publicadas a partir de um outbox transacional (a tabela onde a mensagem é gravada na mesma transação do dado).
 
-### Responsabilidade do Identity
+Este repositório é o **Identity**, dono da identidade da solução: os usuários, os papéis e as credenciais de funcionários e clientes. Hoje ele traz só a base comum dos serviços, sem rotas de negócio. O papel dele na solução é:
 
-O serviço ainda não tem rotas de negócio (veja [O que a API expõe hoje](#o-que-a-api-expõe-hoje)). O papel dele na solução é:
+- **Usuários e credenciais**: os funcionários, com os papéis `ADMIN`, `MECHANIC` e `ATTENDANT`, e o usuário de acesso de cada cliente, com a redefinição de senha dos dois.
+- **Token de funcionário**: a emissão do JWT de acesso assinado em RS256; a chave privada fica no Identity, e os outros serviços validam o token com a chave pública, sem consultá-lo.
+- **Credencial do cliente**: a conferência de CPF e senha para a customer-auth, a função Lambda de login do cliente, que continua emitindo o token de cliente.
+- **E-mails de conta**: a senha inicial e o código de redefinição, publicados como mensagens `notification.email.send` no tópico SNS FIFO `oficina-events.fifo`; a Lambda de notificação, a função `oficina-mecanica-lambda-notification`, lê essas mensagens da fila SQS FIFO `notification.fifo` e envia o e-mail.
 
-- Ser o dono dos usuários funcionários, dos papéis (`ADMIN`, `MECHANIC` e `ATTENDANT`) e das credenciais, e da redefinição de senha.
-- Emitir o token de acesso de funcionário, um JWT assinado em RS256 (chave privada no Identity; os outros serviços validam com a chave pública, sem consultá-lo).
-- Publicar os e-mails de conta (senha inicial e código de redefinição) como mensagens `notification.email.send` no tópico SNS FIFO `oficina-events.fifo`; a Lambda de notificação, a função `oficina-mecanica-lambda-notification`, lê essas mensagens da fila SQS FIFO `notification.fifo` e envia o e-mail. A infraestrutura de publicação já existe: o outbox (tabela onde a mensagem é gravada na mesma transação do dado) e o relay (rotina que lê o outbox e publica no SNS). O serviço não consome nenhuma fila.
-- Validar localmente o token RS256 de funcionário em toda rota protegida e recusar token de cliente.
+O que já existe:
 
-### O que a API expõe hoje
+- **Base comum**: Clean Architecture com regras de importação por camada no ESLint, logs JSON estruturados, OpenTelemetry, health checks, outbox e relay (a rotina que lê o outbox e publica no SNS), cache Valkey (banco em memória compatível com Redis) e cliente HTTP interno. O serviço só publica mensagens e não consome nenhuma fila.
+- **Autenticação**: só o token de funcionário (JWT RS256), validado localmente pela chave pública em toda rota protegida. O token de cliente é recusado.
+- **Entrega**: imagem publicada no Amazon ECR e implantada no Amazon EKS, no namespace `identity`, pelo próprio CD.
 
-Só o que o esqueleto entrega: `GET /api/health/live`, `GET /api/health/ready` e o Swagger em `/api/docs` e `/api/docs-json`. Não há rota de negócio ainda.
+O Identity é o único cliente do próprio PostgreSQL e do próprio Valkey: nenhum outro serviço lê nem escreve neles.
 
-## Stack
+## 🧰 Stack
 
 - **Runtime**: Node.js 24 + TypeScript 6
 - **Framework**: NestJS 12
 - **ORM**: Prisma 7 (driver `@prisma/adapter-pg`, client gerado em `app/prisma/generated/`)
 - **Banco de dados**: PostgreSQL 18 (schema com a tabela `outbox`)
 - **Mensageria**: publicação no Amazon SNS FIFO (`@aws-sdk/client-sns`) com outbox transacional; LocalStack 4.14.0 (emulador local dos serviços AWS) em desenvolvimento
-- **Cache**: Valkey 9.1 (ElastiCache no cluster) via `ioredis`, no padrão cache-aside (lê do cache e, na falta, do banco, gravando o resultado no cache)
+- **Cache**: Valkey 9.1 (no cluster, o Amazon ElastiCache, o serviço de cache gerenciado da AWS) via `ioredis`, no padrão cache-aside (lê do cache e, na falta, do banco, gravando o resultado no cache)
 - **Autenticação**: token de funcionário RS256 validado localmente com `passport-jwt`
 - **Observabilidade**: logs JSON no stdout (`pino` + `nestjs-pino`) e traces e métricas pelo OpenTelemetry
 - **Documentação da API**: Swagger/OpenAPI (`@nestjs/swagger`)
 - **Testes**: Jest 30 (unitários com mocks tipados e E2E com Testcontainers, biblioteca que sobe containers Docker descartáveis para os testes: PostgreSQL 18, Valkey 9.1 e LocalStack 4.14.0)
-- **Qualidade e segurança**: SonarQube Cloud (SAST) e OWASP ZAP (DAST)
+- **Qualidade e segurança**: SonarQube Cloud (SAST, a análise estática do código) e OWASP ZAP (DAST, o teste dinâmico de segurança contra a API no ar)
 - **Containerização**: Docker (multi-stage `node:24-alpine`) + Docker Compose
 - **Linting**: ESLint 10 + Prettier 3
 
-## Pré-requisitos
+## ✅ Pré-requisitos
 
 - Node.js 24.9 ou superior e npm (o `npm ci` deve rodar no Node 24: veja [Testes](docs/testing.md#node-24))
 - Docker com Docker Compose
 - OpenSSL (para gerar o par de chaves RS256 de teste)
 - Git
 
-## Quick start
+## 🚀 Quick Start
 
 Toda a aplicação vive em `app/`, sem `package.json` na raiz do repositório: rode os comandos dentro dela. Nenhum passo exige credenciais AWS: a mensageria local roda no LocalStack.
 
@@ -89,7 +91,7 @@ docker compose down -v
 
 Depois do `up`, a API responde em `http://localhost:3001` e o Swagger em [`http://localhost:3001/api/docs`](http://localhost:3001/api/docs). O passo a passo completo, com as portas dos demais serviços, está em [Como executar localmente](docs/local-setup.md).
 
-## Comandos
+## ⚙️ Comandos
 
 Rode a partir de `app/`.
 
@@ -114,7 +116,41 @@ Rode a partir de `app/`.
 | `npm run prisma:migrate:prod` | Aplica migrations (`migrate deploy`) |
 | `npm run prisma:studio` | Abre o Prisma Studio, a interface web do Prisma para navegar no banco |
 
-## Estrutura
+## 🏛️ Arquitetura
+
+Clean Architecture com quatro camadas e dependências apontando só para dentro. `domain/`, `application/` e `interface-adapters/` não importam NestJS, Prisma, OpenTelemetry, AWS SDK nem `ioredis`, e as regras de importação do ESLint falham o lint na violação. A infraestrutura comum (logging, telemetria, health, mensageria, cache, cliente interno e guard de autenticação) é a mesma dos outros serviços NestJS da solução.
+
+➡️ Detalhes em **[Arquitetura](docs/architecture.md)**.
+
+## 🔌 Rotas
+
+| Grupo | Rotas | Acesso |
+|---|---|---|
+| Saúde e documentação | `GET /api/health/live`, `GET /api/health/ready`, `/api/docs` e `/api/docs-json` | Sem token |
+
+Ainda não há rota de negócio. Toda rota nova exige o token de funcionário, salvo as marcadas como públicas.
+
+## 🌐 Ecossistema de repositórios
+
+Todos na organização [FIAP-15SOAT](https://github.com/FIAP-15SOAT):
+
+| Repositório | Papel |
+| --- | --- |
+| [`oficina-mecanica-work-order-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service) | Serviço Work Order |
+| [`oficina-mecanica-identity-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-identity-service) | Este serviço |
+| [`oficina-mecanica-billing-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-billing-service) | Serviço Billing |
+| [`oficina-mecanica-inventory-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-inventory-service) | Serviço Inventory |
+| [`oficina-mecanica-lambda-customer-auth`](https://github.com/FIAP-15SOAT/oficina-mecanica-lambda-customer-auth) | Lambda de login do cliente |
+| [`oficina-mecanica-lambda-notification`](https://github.com/FIAP-15SOAT/oficina-mecanica-lambda-notification) | Lambda de envio de e-mail |
+| [`oficina-mecanica-infra-base`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-base) | Rede e scripts de ambiente |
+| [`oficina-mecanica-infra-k8s`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-k8s) | EKS, namespaces, ECR e NLB |
+| [`oficina-mecanica-infra-messaging`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-messaging) | SNS e SQS FIFO |
+| [`oficina-mecanica-infra-database-identity`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-database-identity) | RDS e ElastiCache deste serviço |
+| [`oficina-mecanica-api-gateway`](https://github.com/FIAP-15SOAT/oficina-mecanica-api-gateway) | API Gateway |
+| [`oficina-mecanica-custom-monitoring`](https://github.com/FIAP-15SOAT/oficina-mecanica-custom-monitoring) | Dashboards e monitores do Datadog |
+| [`oficina-mecanica-specs`](https://github.com/FIAP-15SOAT/oficina-mecanica-specs) | Arquitetura e changes OpenSpec |
+
+## 📁 Estrutura do repositório
 
 ```text
 oficina-mecanica-identity-service/
@@ -136,7 +172,7 @@ oficina-mecanica-identity-service/
 ├── collections/                    # collection e environment do Postman
 ├── docs/
 │   ├── adr/                        # decisões arquiteturais
-│   ├── c4/                         # C4 nível 3 em PlantUML
+│   ├── c4/                         # C4 nível 3 (componentes)
 │   └── diagrams/                   # diagramas dos pipelines
 ├── .github/
 │   ├── actions/setup-ci/           # ação composta: Node 24, npm ci e Prisma Client
@@ -147,7 +183,7 @@ oficina-mecanica-identity-service/
 
 A pasta `app/src/interface-adapters/` (Clean Controllers e Presenters) ainda não existe: entra com a primeira rota de negócio.
 
-## Documentação
+## 📚 Documentação
 
 | Documento | Conteúdo |
 | --- | --- |
@@ -160,7 +196,7 @@ A pasta `app/src/interface-adapters/` (Clean Controllers e Presenters) ainda nã
 | Swagger | `http://localhost:3001/api/docs` (local) e `http://localhost:3001/api/docs-json` |
 | [SonarQube Cloud](https://sonarcloud.io/project/overview?id=FIAP-15SOAT_oficina-mecanica-identity-service) | Projeto `FIAP-15SOAT_oficina-mecanica-identity-service` |
 
-### ADRs
+### Decisões de arquitetura (ADRs)
 
 - [0001 Clean Architecture em camadas](docs/adr/0001-clean-architecture-em-camadas.md)
 - [0002 Pipelines de CI, CD, SAST e DAST, com rollback e JWT de teste](docs/adr/0002-pipelines-ci-cd-sast-dast-com-rollback.md)
@@ -169,26 +205,13 @@ A pasta `app/src/interface-adapters/` (Clean Controllers e Presenters) ainda nã
 - [0005 Publicação no SNS FIFO com outbox transacional](docs/adr/0005-mensageria-sns-fifo-com-outbox.md)
 - [0006 Cache do dono no ElastiCache](docs/adr/0006-cache-do-dono-no-elasticache.md)
 
-## Ecossistema de repositórios
+## 👥 Autores
 
-Todos na organização [FIAP-15SOAT](https://github.com/FIAP-15SOAT):
+- [Guilherme da Rocha Salvador](https://github.com/guilhermesalvador404)
+- [Lucas Almeida da Silva](https://github.com/lucas-almeida-silva)
+- [Ramoon Lincoln Barros Camacho](https://github.com/ramooncamacho)
+- [Renan Santana Camacho](https://github.com/renancamacho)
 
-| Repositório | Papel |
-| --- | --- |
-| [`oficina-mecanica-work-order-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service) | Serviço Work Order |
-| [`oficina-mecanica-identity-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-identity-service) | Este serviço |
-| [`oficina-mecanica-billing-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-billing-service) | Serviço Billing |
-| [`oficina-mecanica-inventory-service`](https://github.com/FIAP-15SOAT/oficina-mecanica-inventory-service) | Serviço Inventory |
-| [`oficina-mecanica-lambda-customer-auth`](https://github.com/FIAP-15SOAT/oficina-mecanica-lambda-customer-auth) | Lambda de login do cliente |
-| [`oficina-mecanica-lambda-notification`](https://github.com/FIAP-15SOAT/oficina-mecanica-lambda-notification) | Lambda de envio de e-mail |
-| [`oficina-mecanica-infra-base`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-base) | Rede e scripts de ambiente |
-| [`oficina-mecanica-infra-k8s`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-k8s) | EKS, namespaces, ECR e NLB |
-| [`oficina-mecanica-infra-messaging`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-messaging) | SNS e SQS FIFO |
-| [`oficina-mecanica-infra-database-identity`](https://github.com/FIAP-15SOAT/oficina-mecanica-infra-database-identity) | RDS e ElastiCache deste serviço |
-| [`oficina-mecanica-api-gateway`](https://github.com/FIAP-15SOAT/oficina-mecanica-api-gateway) | API Gateway |
-| [`oficina-mecanica-custom-monitoring`](https://github.com/FIAP-15SOAT/oficina-mecanica-custom-monitoring) | Dashboards e monitores do Datadog |
-| [`oficina-mecanica-specs`](https://github.com/FIAP-15SOAT/oficina-mecanica-specs) | Arquitetura e changes OpenSpec |
-
-## Licença
+## 📄 Licença
 
 Projeto acadêmico (FIAP, 15SOAT), para fins educacionais. Sem licença aberta declarada (`UNLICENSED`).
