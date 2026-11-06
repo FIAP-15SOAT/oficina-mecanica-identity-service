@@ -1,0 +1,110 @@
+name: DAST
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: dast-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COMPOSE_FILE: app/docker-compose.yml
+  COMPOSE_PROJECT_NAME: dast
+  # Host URL of the target, for reference: ZAP reaches the API as http://api:3000 on the compose network.
+  API_BASE_URL: http://localhost:3001
+  STAFF_JWT_KEY_ID: staff-dast
+  STAFF_JWT_ISSUER: oficina-identity
+  STAFF_JWT_AUDIENCE: oficina-services
+  STACK_WAIT_TIMEOUT: 180
+
+jobs:
+  zap-scan:
+    name: OWASP ZAP API Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Ephemeral key pair, generated on every run and never committed. The job
+      # plays the role of Identity: it signs an ADMIN access token with the
+      # private key and gives the service only the public key. The private key
+      # is deleted right after signing.
+      - name: Generate an ephemeral RS256 key pair and sign an ADMIN staff token
+        run: |
+          set -euo pipefail
+          key_dir="$RUNNER_TEMP/staff-jwt"
+          mkdir -p "$key_dir"
+          trap 'rm -rf "$key_dir"' EXIT
+
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$key_dir/private.pem"
+          openssl pkey -in "$key_dir/private.pem" -pubout -out "$key_dir/public.pem"
+
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+          now="$(date +%s)"
+          exp="$((now + 3600))"
+          header="{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\"${STAFF_JWT_KEY_ID}\"}"
+          payload="{\"sub\":\"dast-admin\",\"email\":\"dast-admin@example.com\",\"role\":\"ADMIN\",\"typ\":\"access\",\"iss\":\"${STAFF_JWT_ISSUER}\",\"aud\":\"${STAFF_JWT_AUDIENCE}\",\"iat\":${now},\"exp\":${exp}}"
+
+          signing_input="$(printf '%s' "$header" | b64url).$(printf '%s' "$payload" | b64url)"
+          signature="$(printf '%s' "$signing_input" | openssl dgst -sha256 -sign "$key_dir/private.pem" | b64url)"
+          rm -f "$key_dir/private.pem"
+          token="${signing_input}.${signature}"
+
+          echo "::add-mask::$token"
+          {
+            echo "STAFF_JWT_PUBLIC_KEY=$(awk 'NF {sub(/\r/, ""); printf "%s\\n", $0}' "$key_dir/public.pem")"
+            echo "ZAP_AUTH_HEADER_VALUE=Bearer $token"
+          } >> "$GITHUB_ENV"
+
+      - name: Start the target stack and wait for it to become healthy
+        run: |
+          if ! docker compose up -d --build --wait --wait-timeout "$STACK_WAIT_TIMEOUT"; then
+            echo "::error::The stack did not become healthy within ${STACK_WAIT_TIMEOUT}s."
+            docker compose ps --all
+            docker compose logs --no-color --tail 200
+            exit 1
+          fi
+
+      - name: Prepare the ZAP work directory
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/zap-work"
+          cp .zap/rules.tsv "$GITHUB_WORKSPACE/zap-work/rules.tsv"
+          chmod -R 777 "$GITHUB_WORKSPACE/zap-work"
+
+      - name: Run OWASP ZAP API scan with ADMIN staff auth
+        run: |
+          # ZAP 2.17.0 (stable) pinned by digest — bump with: docker buildx imagetools inspect ghcr.io/zaproxy/zaproxy:stable
+          # The scanner joins the compose network, so it reaches the API by service name (host port 3001 maps to 3000).
+          docker run --rm \
+            --network "${COMPOSE_PROJECT_NAME}_default" \
+            -v "$GITHUB_WORKSPACE/zap-work:/zap/wrk:rw" \
+            -e ZAP_AUTH_HEADER=Authorization \
+            -e ZAP_AUTH_HEADER_VALUE="$ZAP_AUTH_HEADER_VALUE" \
+            ghcr.io/zaproxy/zaproxy@sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2 \
+            zap-api-scan.py \
+              -t http://api:3000/api/docs-json \
+              -f openapi \
+              -c rules.tsv \
+              -r zap-report.html \
+              -J zap-report.json
+
+      - name: Upload the ZAP report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: zap-report
+          path: |
+            zap-work/zap-report.html
+            zap-work/zap-report.json
+          if-no-files-found: warn
+
+      - name: Tear down the stack
+        if: always()
+        run: docker compose down -v

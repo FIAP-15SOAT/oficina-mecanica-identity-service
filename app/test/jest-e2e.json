@@ -1,0 +1,42 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "testTimeout": 600000,
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "diagnostics": {
+          "ignoreCodes": [
+            151002
+          ]
+        }
+      }
+    ]
+  },
+  "coverageDirectory": "coverage/e2e",
+  "collectCoverageFrom": [
+    "src/**/*.(t|j)s",
+    "!src/main.ts",
+    "!src/otel.ts",
+    "!src/**/*.config.ts",
+    "!src/**/*.enum.ts",
+    "!src/**/*.exception.ts",
+    "!src/**/*.vo.ts",
+    "!src/**/*.module.ts"
+  ],
+  "moduleNameMapper": {
+    "^@application/(.*)$": "<rootDir>/src/application/$1",
+    "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+    "^@generated/(.*)$": "<rootDir>/prisma/generated/$1",
+    "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
+    "^@interface-adapters/(.*)$": "<rootDir>/src/interface-adapters/$1",
+    "^(\\.\\.?/.+)\\.js$": "$1"
+  }
+}
