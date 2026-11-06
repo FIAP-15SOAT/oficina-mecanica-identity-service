@@ -12,8 +12,10 @@ export class PrismaUnitOfWork implements IUnitOfWork {
 
   async executeTransaction<T>(work: (repositories: IRepositories) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const client = tx as unknown as PrismaService;
+
       const repositories: IRepositories = {
-        outbox: new PrismaOutboxRepository(tx as unknown as PrismaService),
+        outbox: new PrismaOutboxRepository(client),
       };
 
       return work(repositories);
