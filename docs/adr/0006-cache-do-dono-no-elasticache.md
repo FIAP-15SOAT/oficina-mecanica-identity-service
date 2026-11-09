@@ -2,7 +2,7 @@
 
 ## Status
 
-Aceito — 2026-11-05. Herdada da ADR 0006 do Inventory (ADR 0019 do Work Order), adaptada ao Identity.
+Aceito — 2026-11-05. Herdada da ADR 0006 do Inventory (ADR 0019 do Work Order), adaptada ao Identity. Revista em 2026-11-08, com a chave do usuário.
 
 ## Contexto
 
@@ -15,7 +15,8 @@ Cache-aside (a aplicação lê do cache e, na falta, lê do banco e grava no cac
 1. **Porta e adaptador.** `ICache` (`get`, `set` com TTL, `delete(keys[])`) em `application/ports/output/services/`; `ValkeyCacheAdapter` com `ioredis` por `CACHE_URL` (`rediss://` com senha no cluster, `redis://` local). TTL por `CACHE_TTL_SECONDS` (padrão 43200 s, 12 h).
 2. **Só o dono guarda.** O serviço nunca guarda no cache o dado de outro serviço: guarda só o id e busca o dado no dono.
 3. **Falha do cache vira leitura no banco.** Falha de leitura registra `cache.unavailable` e conta como falta; falha de exclusão registra `cache.invalidation_failed` e a chave expira pelo TTL. A prontidão não depende do cache.
-4. **Escopo atual.** A porta e o adaptador existem e estão testados; nenhum valor é guardado ainda. As chaves e a invalidação entram com os casos de uso de usuários.
+4. **Chave do usuário.** `identity:user:<id>`, com o usuário sem o hash da senha e um `cacheVersion` (um valor que o código atual não lê conta como falta), lida por `GET /api/users/:id`, `GET /internal/users/:id` e `GET /api/me`; o 404 não é guardado. Toda escrita no usuário a apaga depois do commit. Login, refresh e redefinição de senha leem sempre o banco.
+5. **Código de redefinição fora do cache.** O mesmo Valkey guarda os códigos de redefinição de senha, mas por uma porta própria que falha a requisição, porque o código não é cache ([ADR 0008](0008-codigo-de-reset-no-valkey.md)).
 
 ## Alternativas consideradas
 
