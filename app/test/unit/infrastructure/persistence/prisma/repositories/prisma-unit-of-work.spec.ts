@@ -1,5 +1,6 @@
 import { PrismaUnitOfWork } from '@infrastructure/persistence/prisma/repositories/prisma-unit-of-work';
 import { PrismaOutboxRepository } from '@infrastructure/persistence/prisma/repositories/prisma-outbox.repository';
+import { PrismaUserRepository } from '@infrastructure/persistence/prisma/repositories/prisma-user.repository';
 
 import {
   createMockPrismaClient,
@@ -30,7 +31,19 @@ describe('PrismaUnitOfWork', () => {
 
       // Check if repositories are passed
       const repos = mockWork.mock.calls[0][0];
-      expect(repos).toEqual({ outbox: expect.any(PrismaOutboxRepository) });
+      expect(repos).toEqual({
+        outbox: expect.any(PrismaOutboxRepository),
+        user: expect.any(PrismaUserRepository),
+      });
+    });
+
+    it('should expose the user repository bound to the transaction', async () => {
+      const mockWork = jest.fn().mockResolvedValue(undefined);
+
+      await unitOfWork.executeTransaction(mockWork);
+
+      const repos = mockWork.mock.calls[0][0];
+      expect(repos.user).toBeInstanceOf(PrismaUserRepository);
     });
 
     it('should propagate errors from the work function', async () => {

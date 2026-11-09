@@ -9,6 +9,7 @@ describe('Email VO', () => {
       ['a mixed-case email', 'User@Example.COM', 'user@example.com'],
     ])('should create from %s', (_description, raw, expected) => {
       const email = Email.create(raw);
+
       expect(email.value).toBe(expected);
     });
 
@@ -18,7 +19,7 @@ describe('Email VO', () => {
     });
 
     it.each(['invalid', 'no-at-sign.com', 'spaces in@email.com', 'no-domain@'])(
-      'throws on malformed email %p',
+      'should throw on malformed email %p',
       (raw) => {
         expect(() => Email.create(raw)).toThrow(DomainValidationException);
         expect(() => Email.create(raw)).toThrow('E-mail inválido');
@@ -28,6 +29,7 @@ describe('Email VO', () => {
     it('should throw when email exceeds 150 chars', () => {
       const local = 'a'.repeat(140);
       const longEmail = `${local}@example.com`;
+
       expect(() => Email.create(longEmail)).toThrow(/no máximo 150 caracteres/);
     });
   });

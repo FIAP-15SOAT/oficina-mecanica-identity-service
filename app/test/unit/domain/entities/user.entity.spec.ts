@@ -43,6 +43,7 @@ describe('User Entity', () => {
 
     it('should throw error if name is too short', () => {
       expect(() => User.create({ ...validProps, name: 'Ab' })).toThrow(DomainValidationException);
+
       expect(() => User.create({ ...validProps, name: 'Ab' })).toThrow(
         'Nome deve ter no mínimo 3 caracteres',
       );
@@ -54,6 +55,7 @@ describe('User Entity', () => {
       expect(() => User.create({ ...validProps, name: longName })).toThrow(
         DomainValidationException,
       );
+
       expect(() => User.create({ ...validProps, name: longName })).toThrow(
         'Nome deve ter no máximo 150 caracteres',
       );
@@ -63,6 +65,7 @@ describe('User Entity', () => {
       expect(() => User.create({ ...validProps, email: 'invalido' })).toThrow(
         DomainValidationException,
       );
+
       expect(() => User.create({ ...validProps, email: 'invalido' })).toThrow('E-mail inválido');
     });
 
@@ -82,6 +85,7 @@ describe('User Entity', () => {
       expect(() => User.create({ ...validProps, passwordHash: '' })).toThrow(
         DomainValidationException,
       );
+
       expect(() => User.create({ ...validProps, passwordHash: '' })).toThrow(
         'Hash de senha não pode ser vazio',
       );
@@ -91,6 +95,7 @@ describe('User Entity', () => {
       expect(() => User.create({ ...validProps, role: 'InvalidRole' as UserRole })).toThrow(
         DomainValidationException,
       );
+
       expect(() => User.create({ ...validProps, role: 'InvalidRole' as UserRole })).toThrow(
         'Role inválida',
       );
@@ -100,6 +105,7 @@ describe('User Entity', () => {
   describe('changeName', () => {
     it('should change name successfully', () => {
       const user = User.create(validProps);
+
       user.changeName('Guilherme Salvador');
 
       expect(user.name).toBe('Guilherme Salvador');
@@ -107,6 +113,7 @@ describe('User Entity', () => {
 
     it('should trim new name', () => {
       const user = User.create(validProps);
+
       user.changeName('  Lucas Almeida  ');
 
       expect(user.name).toBe('Lucas Almeida');
@@ -122,6 +129,7 @@ describe('User Entity', () => {
   describe('changeEmail', () => {
     it('should change email and normalize', () => {
       const user = User.create(validProps);
+
       user.changeEmail('NOVO@Email.COM');
 
       expect(user.email.value).toBe('novo@email.com');
@@ -137,6 +145,7 @@ describe('User Entity', () => {
   describe('changeRole', () => {
     it('should change role successfully', () => {
       const user = User.create(validProps);
+
       user.changeRole(UserRole.MECHANIC);
 
       expect(user.role).toBe(UserRole.MECHANIC);
@@ -153,6 +162,7 @@ describe('User Entity', () => {
   describe('changePassword', () => {
     it('should change password hash', () => {
       const user = User.create(validProps);
+
       user.changePassword('$2b$12$newhash');
 
       expect(user.passwordHash).toBe('$2b$12$newhash');
@@ -230,6 +240,7 @@ describe('User Entity', () => {
 
     it('should activate a deactivated user', () => {
       const user = User.create(validProps);
+
       user.deactivate();
       user.activate();
 
@@ -245,6 +256,7 @@ describe('User Entity', () => {
 
     it('should throw error when deactivating already deactivated user', () => {
       const user = User.create(validProps);
+
       user.deactivate();
 
       expect(() => user.deactivate()).toThrow(DomainValidationException);
@@ -313,6 +325,7 @@ describe('User Entity', () => {
       expect(() => User.create({ ...validProps, cpf: '11111111111' })).toThrow(
         DomainValidationException,
       );
+
       expect(() => User.create({ ...validProps, cpf: '11111111111' })).toThrow('CPF inválido');
     });
 

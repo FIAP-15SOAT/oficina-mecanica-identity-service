@@ -136,6 +136,7 @@ export async function setupTestApp(options: SetupTestAppOptions = {}): Promise<T
   process.env.DATABASE_URL = databaseUrl;
   process.env.CACHE_URL = valkeyContainer.getConnectionUrl();
   process.env.CACHE_TTL_SECONDS = '43200';
+  process.env.BCRYPT_SALT_ROUNDS = '4';
   process.env.STAFF_JWT_PUBLIC_KEY = STAFF_JWT_TEST_PUBLIC_KEY;
   process.env.STAFF_JWT_KEY_ID = STAFF_JWT_TEST_KEY_ID;
   process.env.STAFF_JWT_ISSUER = STAFF_JWT_TEST_ISSUER;
