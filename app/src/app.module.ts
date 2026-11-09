@@ -14,6 +14,7 @@ import { LoggingModule } from './infrastructure/logging/logging.module';
 import { TelemetryModule } from './infrastructure/telemetry/telemetry.module';
 import { PrismaModule } from './infrastructure/persistence/prisma/prisma.module';
 import { RepositoriesModule } from './infrastructure/persistence/prisma/repositories/repositories.module';
+import { AuthModule } from './infrastructure/http/controllers/auth/auth.module';
 import { UserModule } from './infrastructure/http/controllers/user/user.module';
 import { HealthModule } from './infrastructure/http/controllers/health/health.module';
 import { MessagingModule } from './infrastructure/messaging/messaging.module';
@@ -33,6 +34,7 @@ import { ClientsModule } from './infrastructure/clients/clients.module';
     CacheModule,
     ClientsModule,
     HealthModule,
+    AuthModule,
     UserModule,
   ],
   providers: [

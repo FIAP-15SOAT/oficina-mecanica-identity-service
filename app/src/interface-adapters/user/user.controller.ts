@@ -4,6 +4,7 @@ import { IFindAllUsersUseCase } from '@application/ports/input/user/find-all-use
 import { IUpdateUserUseCase } from '@application/ports/input/user/update-user.use-case.interface';
 import { IUpdateUserStatusUseCase } from '@application/ports/input/user/update-user-status.use-case.interface';
 import { IDeleteUserUseCase } from '@application/ports/input/user/delete-user.use-case.interface';
+import { IIssuePasswordResetCodeUseCase } from '@application/ports/input/auth/issue-password-reset-code.use-case.interface';
 
 import { CreateUserRequest } from './requests/create-user-request';
 import { UpdateUserRequest } from './requests/update-user-request';
@@ -21,6 +22,7 @@ export class UserController {
     private readonly updateUserUseCase: IUpdateUserUseCase,
     private readonly updateUserStatusUseCase: IUpdateUserStatusUseCase,
     private readonly deleteUserUseCase: IDeleteUserUseCase,
+    private readonly issuePasswordResetCodeUseCase: IIssuePasswordResetCodeUseCase,
   ) {}
 
   async create(input: CreateUserRequest): Promise<UserDataResponse> {
@@ -55,5 +57,9 @@ export class UserController {
 
   async remove(id: string): Promise<void> {
     await this.deleteUserUseCase.execute(id);
+  }
+
+  async issuePasswordResetCode(userId: string, actingUserId: string): Promise<void> {
+    await this.issuePasswordResetCodeUseCase.execute(userId, actingUserId);
   }
 }

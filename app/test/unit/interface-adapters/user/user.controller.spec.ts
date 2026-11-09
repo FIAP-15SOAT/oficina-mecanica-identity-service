@@ -15,6 +15,7 @@ import { IFindAllUsersUseCase } from '@application/ports/input/user/find-all-use
 import { IUpdateUserUseCase } from '@application/ports/input/user/update-user.use-case.interface';
 import { IUpdateUserStatusUseCase } from '@application/ports/input/user/update-user-status.use-case.interface';
 import { IDeleteUserUseCase } from '@application/ports/input/user/delete-user.use-case.interface';
+import { IIssuePasswordResetCodeUseCase } from '@application/ports/input/auth/issue-password-reset-code.use-case.interface';
 
 import { createMockUser } from '../../../helpers/user-mock.factory';
 
@@ -26,6 +27,7 @@ describe('UserController', () => {
   let updateUserUseCase: jest.Mocked<IUpdateUserUseCase>;
   let updateUserStatusUseCase: jest.Mocked<IUpdateUserStatusUseCase>;
   let deleteUserUseCase: jest.Mocked<IDeleteUserUseCase>;
+  let issuePasswordResetCodeUseCase: jest.Mocked<IIssuePasswordResetCodeUseCase>;
 
   beforeEach(() => {
     createUserUseCase = { execute: jest.fn() };
@@ -34,6 +36,7 @@ describe('UserController', () => {
     updateUserUseCase = { execute: jest.fn() };
     updateUserStatusUseCase = { execute: jest.fn() };
     deleteUserUseCase = { execute: jest.fn() };
+    issuePasswordResetCodeUseCase = { execute: jest.fn() };
 
     controller = new UserController(
       createUserUseCase,
@@ -42,6 +45,7 @@ describe('UserController', () => {
       updateUserUseCase,
       updateUserStatusUseCase,
       deleteUserUseCase,
+      issuePasswordResetCodeUseCase,
     );
   });
 
@@ -178,6 +182,19 @@ describe('UserController', () => {
       await controller.remove(id);
 
       expect(deleteUserUseCase.execute).toHaveBeenCalledWith(id);
+    });
+  });
+
+  describe('issuePasswordResetCode', () => {
+    it('should call the issue password reset code use case with the correct ids', async () => {
+      const userId = randomUUID();
+      const actingUserId = randomUUID();
+
+      issuePasswordResetCodeUseCase.execute.mockResolvedValue(undefined);
+
+      await controller.issuePasswordResetCode(userId, actingUserId);
+
+      expect(issuePasswordResetCodeUseCase.execute).toHaveBeenCalledWith(userId, actingUserId);
     });
   });
 });
