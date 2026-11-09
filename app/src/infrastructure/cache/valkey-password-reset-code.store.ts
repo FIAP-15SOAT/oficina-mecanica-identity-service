@@ -1,12 +1,14 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
+import { ILogger } from '@application/ports/output/services/logger.service.interface';
 import {
   IPasswordResetCodeStore,
   PasswordResetCodeAttempt,
 } from '@application/ports/output/services/password-reset-code-store.interface';
 import { PASSWORD_RESET_CODE_TTL_SECONDS } from '@domain/constants/validation/password-reset.constants';
+import { TECHNICAL_EVENTS } from '@infrastructure/logging/technical-event.catalog';
 import { ServiceIntegrationException } from '@infrastructure/exceptions/service-integration.exception';
 
 import { createCacheClient } from './valkey-client';
@@ -27,7 +29,10 @@ return { attempts, redis.call('HGET', KEYS[1], 'codeHash') }
 export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, OnModuleDestroy {
   private readonly client: Redis;
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    @Inject('ILogger') private readonly logger: ILogger,
+  ) {
     this.client = createCacheClient(config.getOrThrow<string>('CACHE_URL'));
   }
 
@@ -42,7 +47,9 @@ export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, On
         .hset(key, 'codeHash', codeHash, 'attempts', 0)
         .expire(key, PASSWORD_RESET_CODE_TTL_SECONDS)
         .exec();
-    } catch {
+    } catch (error) {
+      this.logger.event(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, error);
+
       throw new ServiceIntegrationException(FAILURE_MESSAGE);
     }
 
@@ -60,7 +67,9 @@ export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, On
         | null;
 
       return result ? { attempts: result[0], codeHash: result[1] } : null;
-    } catch {
+    } catch (error) {
+      this.logger.event(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, error);
+
       throw new ServiceIntegrationException(FAILURE_MESSAGE);
     }
   }
@@ -68,7 +77,9 @@ export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, On
   async delete(userId: string): Promise<void> {
     try {
       await this.client.del(this.key(userId));
-    } catch {
+    } catch (error) {
+      this.logger.event(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, error);
+
       throw new ServiceIntegrationException(FAILURE_MESSAGE);
     }
   }

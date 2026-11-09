@@ -92,7 +92,54 @@ describe('PrismaUserRepository', () => {
       await expect(repository.create(user)).rejects.toThrow('E-mail já cadastrado no sistema');
     });
 
-    it('should report a CPF conflict distinctly from an email conflict on P2002', async () => {
+    it('should report an e-mail conflict when the adapter names the e-mail index', async () => {
+      const user = User.create({
+        name: 'Jane Smith',
+        email: 'jane.smith@example.com',
+        passwordHash: '$2b$10$hashedpassword',
+        role: UserRole.MECHANIC,
+      });
+
+      const error = new Prisma.PrismaClientKnownRequestError('Duplicate email', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+        meta: {
+          driverAdapterError: {
+            cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'users_email_key' } },
+          },
+          modelName: 'User',
+        },
+      });
+      prisma.user.create.mockRejectedValue(error);
+
+      await expect(repository.create(user)).rejects.toThrow('E-mail já cadastrado no sistema');
+    });
+
+    it('should report a CPF conflict when the adapter names the CPF index', async () => {
+      const user = User.create({
+        name: 'Jane Smith',
+        email: 'jane.smith@example.com',
+        passwordHash: '$2b$10$hashedpassword',
+        role: UserRole.MECHANIC,
+        cpf: '12345678909',
+      });
+
+      const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
+        code: 'P2002',
+        clientVersion: '5.0.0',
+        meta: {
+          driverAdapterError: {
+            cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'users_cpf_key' } },
+          },
+          modelName: 'User',
+        },
+      });
+      prisma.user.create.mockRejectedValue(error);
+
+      await expect(repository.create(user)).rejects.toThrow('CPF já cadastrado');
+    });
+
+    it('should report a CPF conflict from the target list when the adapter error is absent', async () => {
       const user = User.create({
         name: 'Jane Smith',
         email: 'jane.smith@example.com',
@@ -111,7 +158,7 @@ describe('PrismaUserRepository', () => {
       await expect(repository.create(user)).rejects.toThrow('CPF já cadastrado');
     });
 
-    it('should report a CPF conflict when the driver sends the target as a single string', async () => {
+    it('should report a CPF conflict from the adapter constraint fields', async () => {
       const user = User.create({
         name: 'Jane Smith',
         email: 'jane.smith@example.com',
@@ -123,7 +170,9 @@ describe('PrismaUserRepository', () => {
       const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
         code: 'P2002',
         clientVersion: '5.0.0',
-        meta: { target: 'cpf' },
+        meta: {
+          driverAdapterError: { cause: { constraint: { fields: ['cpf'] } } },
+        },
       });
       prisma.user.create.mockRejectedValue(error);
 
@@ -364,7 +413,12 @@ describe('PrismaUserRepository', () => {
       const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
         code: 'P2002',
         clientVersion: '5.0.0',
-        meta: { target: ['cpf'] },
+        meta: {
+          driverAdapterError: {
+            cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'users_cpf_key' } },
+          },
+          modelName: 'User',
+        },
       });
       prisma.user.update.mockRejectedValue(error);
 

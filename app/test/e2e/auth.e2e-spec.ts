@@ -523,8 +523,47 @@ describe('Auth (E2E)', () => {
       expect(logged).toContain('user.password_reset.completed');
       expect(logged).not.toContain(code);
       expect(logged).not.toContain(NEW_PASSWORD);
+      expect(logged).not.toContain('weak');
       expect(logged).not.toContain(body);
       expect(logged).not.toContain('Use o código abaixo');
+    });
+  });
+
+  describe('Initial password log inspection', () => {
+    async function readInitialPassword(
+      purpose: string,
+    ): Promise<{ password: string; text: string }> {
+      const messages = await ctx.prisma.outboxMessage.findMany();
+      const message = messages.find(
+        (item) => (item.payload as { purpose: string }).purpose === purpose,
+      );
+      const text = (message!.payload as { text: string }).text;
+      const password = /Senha[^:]*: (\S+)/.exec(text)![1];
+
+      return { password, text };
+    }
+
+    it('should never log the initial passwords or the e-mail bodies', async () => {
+      ctx.logCapture!.clear();
+
+      await request(httpServer)
+        .post('/api/users')
+        .set('Authorization', admin)
+        .send({ name: 'Equipe', email: 'staff-logs@e2e.test', role: 'MECHANIC' })
+        .expect(201);
+      await request(httpServer)
+        .post('/internal/customer-users')
+        .send({ name: 'Cliente', email: 'customer-logs@e2e.test', cpf: '12345678909' })
+        .expect(200);
+
+      const staff = await readInitialPassword('staff_initial_password');
+      const customer = await readInitialPassword('customer_initial_password');
+      const logged = JSON.stringify(ctx.logCapture!.lines());
+
+      expect(logged).not.toContain(staff.password);
+      expect(logged).not.toContain(customer.password);
+      expect(logged).not.toContain(staff.text);
+      expect(logged).not.toContain(customer.text);
     });
   });
 

@@ -100,6 +100,16 @@ describe('ConfirmPasswordResetUseCase', () => {
     expect(resetCodeStore.delete).not.toHaveBeenCalled();
   });
 
+  it('should look the user up by the trimmed lowercase e-mail', async () => {
+    userRepository.findByEmail.mockResolvedValue(null);
+
+    await expect(useCase.execute({ ...input, email: '  John.Doe@Example.com ' })).rejects.toThrow(
+      rejection,
+    );
+
+    expect(userRepository.findByEmail).toHaveBeenCalledWith('john.doe@example.com');
+  });
+
   it('should reject an unknown e-mail without registering an attempt', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
 

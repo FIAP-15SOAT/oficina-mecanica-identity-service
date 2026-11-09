@@ -7,12 +7,13 @@ import {
   UpdateUserOutputDto,
 } from '@application/ports/input/user/dto/update-user.dto';
 
+import { IUpdateUserUseCase } from '@application/ports/input/user/update-user.use-case.interface';
 import { ICache } from '@application/ports/output/services/cache.service.interface';
 import { identityCacheKeys } from '@application/keys/identity-cache-keys';
 import { ResourceConflictException } from '@application/exceptions/resource-conflict.exception';
 import { ResourceNotFoundException } from '@application/exceptions/resource-not-found.exception';
 
-export class UpdateUserUseCase {
+export class UpdateUserUseCase implements IUpdateUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly cache: ICache,

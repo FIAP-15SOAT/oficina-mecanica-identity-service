@@ -10,12 +10,13 @@ import {
   RefreshTokenOutputDto,
 } from '@application/ports/input/auth/dto/refresh-token.dto';
 
+import { IRefreshTokenUseCase } from '@application/ports/input/auth/refresh-token.use-case.interface';
 import { BUSINESS_EVENTS } from '@application/logging/business-event.catalog';
 import { UnauthorizedAccessException } from '@application/exceptions/unauthorized-access.exception';
 
 const INVALID_REFRESH_TOKEN_MESSAGE = 'Refresh token inválido ou expirado';
 
-export class RefreshTokenUseCase {
+export class RefreshTokenUseCase implements IRefreshTokenUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly tokenService: ITokenService,

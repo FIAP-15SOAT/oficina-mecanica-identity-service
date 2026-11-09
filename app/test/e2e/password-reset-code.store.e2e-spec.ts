@@ -5,6 +5,8 @@ import { StartedValkeyContainer, ValkeyContainer } from '@testcontainers/valkey'
 import { PASSWORD_RESET_CODE_TTL_SECONDS } from '@domain/constants/validation/password-reset.constants';
 import { ValkeyPasswordResetCodeStore } from '@infrastructure/cache/valkey-password-reset-code.store';
 
+import { createMockLogger } from '../helpers/logger-mock.factory';
+
 const USER_ID = 'user-1';
 const KEY = `identity:reset-code:${USER_ID}`;
 
@@ -18,6 +20,7 @@ describe('ValkeyPasswordResetCodeStore (e2e)', () => {
     inspector = new Redis(container.getConnectionUrl());
     store = new ValkeyPasswordResetCodeStore(
       new ConfigService({ CACHE_URL: container.getConnectionUrl() }),
+      createMockLogger(),
     );
   }, 120_000);
 

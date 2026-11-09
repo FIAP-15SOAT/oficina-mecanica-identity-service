@@ -135,11 +135,25 @@ export class PrismaUserRepository implements IUserRepository {
   }
 }
 
+type AdapterConstraint = { index?: string; fields?: string[] };
+
+// Prisma 7 with the pg adapter reports the violated constraint under meta.driverAdapterError
+// (index name such as users_cpf_key) and no longer sends meta.target.
 function conflictingField(error: Prisma.PrismaClientKnownRequestError): string | undefined {
-  const target = error.meta?.target;
+  const meta = error.meta as
+    | {
+        target?: string | string[];
+        driverAdapterError?: { cause?: { constraint?: AdapterConstraint } };
+      }
+    | undefined;
+  const constraint = meta?.driverAdapterError?.cause?.constraint;
 
-  if (Array.isArray(target)) return target[0] as string | undefined;
-  if (typeof target === 'string') return target;
+  if (constraint?.fields?.length) return constraint.fields[0];
+  if (constraint?.index) return constraint.index.includes('cpf') ? 'cpf' : 'email';
 
-  return undefined;
+  const target = meta?.target;
+
+  if (Array.isArray(target)) return target[0];
+
+  return target;
 }

@@ -50,6 +50,15 @@ describe('AuthenticateUserUseCase', () => {
     });
   });
 
+  it('should look the user up by the trimmed lowercase e-mail', async () => {
+    userRepository.findByEmail.mockResolvedValue(createMockUser(identity));
+    hashService.compare.mockResolvedValue(true);
+
+    await useCase.execute({ email: '  Admin@Email.com ', password: 'Senha@123' });
+
+    expect(userRepository.findByEmail).toHaveBeenCalledWith('admin@email.com');
+  });
+
   it('should throw UnauthorizedAccessException if user does not exist', async () => {
     userRepository.findByEmail.mockResolvedValue(null);
 

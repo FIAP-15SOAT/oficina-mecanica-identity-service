@@ -83,6 +83,22 @@ describe('User (E2E)', () => {
       });
     });
 
+    it('should return 409 with the CPF message when the CPF belongs to another user', async () => {
+      await request(httpServer)
+        .post('/api/users')
+        .set('Authorization', admin)
+        .send({ name: 'User A', email: 'cpf-a@e2e.test', role: 'MECHANIC', cpf: '12345678909' })
+        .expect(201);
+
+      const response = await request(httpServer)
+        .post('/api/users')
+        .set('Authorization', admin)
+        .send({ name: 'User B', email: 'cpf-b@e2e.test', role: 'MECHANIC', cpf: '12345678909' })
+        .expect(409);
+
+      expect(response.body.message).toBe('CPF já cadastrado');
+    });
+
     it('should return 409 and keep a single outbox message when the e-mail is duplicated', async () => {
       await createUser('dup@e2e.test');
 
@@ -367,6 +383,7 @@ describe('User (E2E)', () => {
 
     it('should return 422 when deactivating an already inactive user', async () => {
       const user = await createUser('inactive@e2e.test');
+
       await request(httpServer)
         .patch(`/api/users/${user.id}`)
         .set('Authorization', admin)

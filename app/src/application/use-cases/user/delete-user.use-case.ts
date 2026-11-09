@@ -1,9 +1,10 @@
 import { IUserRepository } from '@domain/interfaces/repositories/user.repository.interface';
+import { IDeleteUserUseCase } from '@application/ports/input/user/delete-user.use-case.interface';
 import { ICache } from '@application/ports/output/services/cache.service.interface';
 import { identityCacheKeys } from '@application/keys/identity-cache-keys';
 import { ResourceNotFoundException } from '@application/exceptions/resource-not-found.exception';
 
-export class DeleteUserUseCase {
+export class DeleteUserUseCase implements IDeleteUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly cache: ICache,

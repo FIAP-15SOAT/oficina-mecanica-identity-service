@@ -8,12 +8,13 @@ import {
   AuthenticateUserOutputDto,
 } from '@application/ports/input/auth/dto/authenticate-user.dto';
 
+import { IAuthenticateUserUseCase } from '@application/ports/input/auth/authenticate-user.use-case.interface';
 import { BUSINESS_EVENTS } from '@application/logging/business-event.catalog';
 import { UnauthorizedAccessException } from '@application/exceptions/unauthorized-access.exception';
 
 const INVALID_CREDENTIALS_MESSAGE = 'Credenciais inválidas';
 
-export class AuthenticateUserUseCase {
+export class AuthenticateUserUseCase implements IAuthenticateUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly hashService: IHashService,
@@ -22,7 +23,7 @@ export class AuthenticateUserUseCase {
   ) {}
 
   async execute(input: AuthenticateUserInputDto): Promise<AuthenticateUserOutputDto> {
-    const user = await this.userRepository.findByEmail(input.email);
+    const user = await this.userRepository.findByEmail(input.email.trim().toLowerCase());
 
     if (!user) {
       this.logger.event(BUSINESS_EVENTS.AUTHENTICATION_FAILED, { failureReason: 'unknown_user' });

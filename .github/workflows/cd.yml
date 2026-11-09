@@ -298,7 +298,7 @@ jobs:
     needs:
       - build-push-image
       - prepare-deploy
-    # A rollback image would re-run its older seed over the newer schema.
+    # A rollback image would run its older migrations and seed over the newer schema.
     if: >-
       github.ref == 'refs/heads/main' &&
       (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch') &&

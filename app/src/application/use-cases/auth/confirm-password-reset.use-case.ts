@@ -27,7 +27,7 @@ export class ConfirmPasswordResetUseCase implements IConfirmPasswordResetUseCase
     // A weak password is a request error: it must not spend an attempt of the code.
     User.validatePasswordStrength(dto.newPassword);
 
-    const user = await this.userRepository.findByEmail(dto.email);
+    const user = await this.userRepository.findByEmail(dto.email.trim().toLowerCase());
 
     if (!user) {
       throw this.reject('unknown_user');

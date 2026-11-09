@@ -1,10 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
+import { ILogger } from '@application/ports/output/services/logger.service.interface';
 import { PASSWORD_RESET_CODE_TTL_SECONDS } from '@domain/constants/validation/password-reset.constants';
 import { createCacheClient } from '@infrastructure/cache/valkey-client';
 import { ValkeyPasswordResetCodeStore } from '@infrastructure/cache/valkey-password-reset-code.store';
 import { ServiceIntegrationException } from '@infrastructure/exceptions/service-integration.exception';
+import { TECHNICAL_EVENTS } from '@infrastructure/logging/technical-event.catalog';
+
+import { createMockLogger } from '../../../helpers/logger-mock.factory';
 
 jest.mock('@infrastructure/cache/valkey-client');
 
@@ -22,6 +26,7 @@ type MockClient = jest.Mocked<Pick<Redis, 'eval' | 'del' | 'quit' | 'disconnect'
 describe('ValkeyPasswordResetCodeStore', () => {
   let multi: MockMulti;
   let client: MockClient;
+  let logger: jest.Mocked<ILogger>;
   let store: ValkeyPasswordResetCodeStore;
 
   beforeEach(() => {
@@ -35,8 +40,9 @@ describe('ValkeyPasswordResetCodeStore', () => {
       quit: jest.fn(),
       disconnect: jest.fn(),
     };
+    logger = createMockLogger();
     jest.mocked(createCacheClient).mockReturnValue(client as unknown as Redis);
-    store = new ValkeyPasswordResetCodeStore(new ConfigService({ CACHE_URL }));
+    store = new ValkeyPasswordResetCodeStore(new ConfigService({ CACHE_URL }), logger);
   });
 
   it('should create the client from CACHE_URL', () => {
@@ -44,7 +50,9 @@ describe('ValkeyPasswordResetCodeStore', () => {
   });
 
   it('should fail when CACHE_URL is missing', () => {
-    expect(() => new ValkeyPasswordResetCodeStore(new ConfigService({}))).toThrow('CACHE_URL');
+    expect(() => new ValkeyPasswordResetCodeStore(new ConfigService({}), logger)).toThrow(
+      'CACHE_URL',
+    );
   });
 
   describe('save', () => {
@@ -62,11 +70,13 @@ describe('ValkeyPasswordResetCodeStore', () => {
     });
 
     it('should throw ServiceIntegrationException when Valkey fails', async () => {
-      multi.exec.mockRejectedValueOnce(new Error('down'));
+      const cause = new Error('down');
+      multi.exec.mockRejectedValueOnce(cause);
 
       const result = store.save(USER_ID, 'hash');
 
       await expect(result).rejects.toThrow(new ServiceIntegrationException(FAILURE_MESSAGE));
+      expect(logger.event).toHaveBeenCalledWith(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, cause);
     });
   });
 
@@ -110,11 +120,13 @@ describe('ValkeyPasswordResetCodeStore', () => {
     });
 
     it('should throw ServiceIntegrationException when Valkey fails', async () => {
-      client.eval.mockRejectedValueOnce(new Error('down'));
+      const cause = new Error('down');
+      client.eval.mockRejectedValueOnce(cause);
 
       const result = store.registerAttempt(USER_ID);
 
       await expect(result).rejects.toThrow(new ServiceIntegrationException(FAILURE_MESSAGE));
+      expect(logger.event).toHaveBeenCalledWith(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, cause);
     });
   });
 
@@ -128,11 +140,13 @@ describe('ValkeyPasswordResetCodeStore', () => {
     });
 
     it('should throw ServiceIntegrationException when Valkey fails', async () => {
-      client.del.mockRejectedValueOnce(new Error('down'));
+      const cause = new Error('down');
+      client.del.mockRejectedValueOnce(cause);
 
       const result = store.delete(USER_ID);
 
       await expect(result).rejects.toThrow(new ServiceIntegrationException(FAILURE_MESSAGE));
+      expect(logger.event).toHaveBeenCalledWith(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, cause);
     });
   });
 
