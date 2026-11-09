@@ -74,7 +74,11 @@ console.log('interruptor (OTEL_EXPORTER_OTLP_ENDPOINT vazio)');
   check('a aplicação sobe', result.status === 0, result.stderr);
   // The early `return` must come BEFORE the SDK imports: with top-level
   // `import`, the off mode still paid ~348 modules and ~13.5 MiB of RSS per pod.
-  check('nenhum módulo do SDK é carregado', parsed.otelModules === 0, `carregados: ${parsed.otelModules}`);
+  check(
+    'nenhum módulo do SDK é carregado',
+    parsed.otelModules === 0,
+    `carregados: ${parsed.otelModules}`,
+  );
 }
 
 console.log('configuração inválida não impede o boot');
