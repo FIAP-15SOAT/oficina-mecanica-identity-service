@@ -52,4 +52,41 @@ describe('UserPresenter', () => {
       expect(result.data).toHaveLength(0);
     });
   });
+
+  describe('toInternalDataResponse', () => {
+    it('should project only the fields other services need', () => {
+      const view = createMockUser().toPublicView();
+
+      const result = UserPresenter.toInternalDataResponse(view);
+
+      expect(result).toEqual({
+        data: {
+          id: view.id,
+          name: view.name,
+          email: view.email,
+          role: view.role,
+          isActive: view.isActive,
+        },
+      });
+    });
+  });
+
+  describe('toCustomerUserDataResponse', () => {
+    it('should wrap the user id and the created flag', () => {
+      const result = UserPresenter.toCustomerUserDataResponse({
+        userId: 'user-id',
+        created: false,
+      });
+
+      expect(result).toEqual({ data: { userId: 'user-id', created: false } });
+    });
+  });
+
+  describe('toCustomerAuthenticationDataResponse', () => {
+    it('should wrap the user id', () => {
+      const result = UserPresenter.toCustomerAuthenticationDataResponse({ userId: 'user-id' });
+
+      expect(result).toEqual({ data: { userId: 'user-id' } });
+    });
+  });
 });

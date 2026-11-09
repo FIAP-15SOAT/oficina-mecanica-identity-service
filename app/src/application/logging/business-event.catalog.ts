@@ -4,6 +4,7 @@ export type AuthenticationFailureReason =
   | 'unknown_user'
   | 'inactive_user'
   | 'wrong_password'
+  | 'invalid_cpf'
   | 'no_internal_role';
 
 export type RefreshFailureReason =
@@ -38,6 +39,16 @@ export const BUSINESS_EVENTS = {
     name: 'auth.refresh.failed',
     message: 'refresh token rejected',
     level: 'warn',
+  }),
+  CUSTOMER_CREDENTIAL_ACCEPTED: defineLogEvent<AuthenticatedSubjectFields>({
+    name: 'auth.customer_credential.accepted',
+    message: 'customer credentials accepted',
+    level: 'info',
+  }),
+  CUSTOMER_USER_CREATED: defineLogEvent<{ targetUserId: string }>({
+    name: 'user.customer.created',
+    message: 'customer access user created with an initial password',
+    level: 'info',
   }),
   USER_STATUS_UPDATED: defineLogEvent<{ targetUserId: string; targetUserActive: boolean }>({
     name: 'user.status.updated',
