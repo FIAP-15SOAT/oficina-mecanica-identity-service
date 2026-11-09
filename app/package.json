@@ -26,7 +26,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:prod": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:seed": "prisma db seed"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.1156.0",
@@ -69,7 +70,8 @@
     "pino-http": "^11.0.0",
     "proxy-addr": "^2.0.7",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
     "@aws-sdk/client-sqs": "^3.1156.0",

@@ -28,7 +28,7 @@ services:
       args:
         DATABASE_URL: postgresql://postgres:postgres@postgres:5432/identity_service?schema=public
     container_name: identity-migrate
-    command: ["npx", "prisma", "migrate", "deploy"]
+    command: ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed"]
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/identity_service?schema=public
       TZ: America/Sao_Paulo

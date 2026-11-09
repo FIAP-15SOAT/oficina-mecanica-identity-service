@@ -57,6 +57,8 @@ spec:
             - configMapRef:
                 name: identity-config
             - secretRef:
+                name: jwt-private-keys
+            - secretRef:
                 name: database-credentials
             - secretRef:
                 name: cache-credentials
