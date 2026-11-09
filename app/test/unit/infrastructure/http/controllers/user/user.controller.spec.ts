@@ -10,6 +10,8 @@ import { UpdateUserRequestDto } from '@infrastructure/http/controllers/user/dto/
 import { UpdateUserStatusRequestDto } from '@infrastructure/http/controllers/user/dto/requests/update-user-status-request.dto';
 import { FindAllUsersQueryDto } from '@infrastructure/http/controllers/user/dto/requests/filter-users.dto';
 
+import { AuthenticatedPrincipal } from '@application/auth/authenticated-principal';
+import { AuthFlow } from '@domain/enums/auth-flow.enum';
 import { UserRole } from '@domain/enums/user-role.enum';
 
 import { createMockUser } from '../../../../../helpers/user-mock.factory';
@@ -133,7 +135,12 @@ describe('UserController', () => {
   describe('issuePasswordResetCode', () => {
     it('should delegate to the clean controller with the acting user id', async () => {
       const userId = randomUUID();
-      const actingUser = { sub: randomUUID(), email: 'admin@example.com', role: UserRole.ADMIN };
+      const actingUser: AuthenticatedPrincipal = {
+        sub: randomUUID(),
+        authFlow: AuthFlow.INTERNAL,
+        email: 'admin@example.com',
+        role: UserRole.ADMIN,
+      };
 
       jest.spyOn(cleanController, 'issuePasswordResetCode').mockResolvedValue(undefined);
 

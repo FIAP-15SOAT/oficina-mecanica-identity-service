@@ -79,7 +79,7 @@ describe('Authentication guard (E2E)', () => {
       .set('Authorization', `Bearer ${signTestStaffToken(ADMIN)}`)
       .expect(200);
 
-    expect(response.body).toEqual(ADMIN);
+    expect(response.body).toEqual({ ...ADMIN, authFlow: 'INTERNAL' });
   });
 
   it('should serve /api/health/live without a token', async () => {

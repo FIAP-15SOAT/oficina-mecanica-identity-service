@@ -24,6 +24,11 @@ import {
   STAFF_JWT_TEST_PUBLIC_KEY,
   STAFF_REFRESH_TEST_PRIVATE_KEY,
 } from './staff-jwt.helper';
+import {
+  CUSTOMER_JWT_TEST_AUDIENCE,
+  CUSTOMER_JWT_TEST_ISSUER,
+  CUSTOMER_JWT_TEST_PUBLIC_KEY,
+} from './customer-jwt.helper';
 
 export interface LogCapture {
   lines(): Record<string, unknown>[];
@@ -57,6 +62,8 @@ export interface SetupTestAppOptions {
   controllers?: Type[];
   /** Starts LocalStack with the messaging topology and runs the real outbox relay. */
   withMessaging?: boolean;
+  /** Base URL of the work order stub; the default refuses every connection. */
+  workOrderUrl?: string;
 }
 
 interface LogCaptureSeam {
@@ -147,6 +154,10 @@ export async function setupTestApp(options: SetupTestAppOptions = {}): Promise<T
   process.env.STAFF_JWT_KEY_ID = STAFF_JWT_TEST_KEY_ID;
   process.env.STAFF_JWT_ISSUER = STAFF_JWT_TEST_ISSUER;
   process.env.STAFF_JWT_AUDIENCE = STAFF_JWT_TEST_AUDIENCE;
+  process.env.CUSTOMER_JWT_PUBLIC_KEY = CUSTOMER_JWT_TEST_PUBLIC_KEY;
+  process.env.CUSTOMER_JWT_ISSUER = CUSTOMER_JWT_TEST_ISSUER;
+  process.env.CUSTOMER_JWT_AUDIENCE = CUSTOMER_JWT_TEST_AUDIENCE;
+  process.env.WORK_ORDER_SERVICE_URL = options.workOrderUrl ?? 'http://127.0.0.1:9';
 
   execSync('npx prisma migrate deploy', {
     env: { ...process.env },

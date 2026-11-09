@@ -56,6 +56,10 @@ services:
       STAFF_JWT_KEY_ID: ${STAFF_JWT_KEY_ID:-staff-local}
       STAFF_JWT_ISSUER: ${STAFF_JWT_ISSUER:-oficina-identity}
       STAFF_JWT_AUDIENCE: ${STAFF_JWT_AUDIENCE:-oficina-services}
+      CUSTOMER_JWT_PUBLIC_KEY: ${CUSTOMER_JWT_PUBLIC_KEY:?Informe a chave pública RS256 do token de cliente conforme docs/local-setup.md}
+      CUSTOMER_JWT_ISSUER: ${CUSTOMER_JWT_ISSUER:-oficina-customer-auth}
+      CUSTOMER_JWT_AUDIENCE: ${CUSTOMER_JWT_AUDIENCE:-oficina-api}
+      WORK_ORDER_SERVICE_URL: ${WORK_ORDER_SERVICE_URL:-http://host.docker.internal:3000}
       AWS_REGION: us-east-1
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: test
@@ -65,6 +69,9 @@ services:
       CACHE_TTL_SECONDS: 43200
       BCRYPT_SALT_ROUNDS: ${BCRYPT_SALT_ROUNDS:-12}
       TZ: America/Sao_Paulo
+    # The work order runs in its own compose stack, published on the host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health/ready"]
       interval: 5s

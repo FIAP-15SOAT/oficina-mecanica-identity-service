@@ -2,6 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants';
 
 import { AuthenticatedPrincipal } from '@application/auth/authenticated-principal';
+import { AuthFlow } from '@domain/enums/auth-flow.enum';
 import { UserRole } from '@domain/enums/user-role.enum';
 import { CurrentPrincipal } from '@infrastructure/http/decorators/current-principal.decorator';
 
@@ -36,6 +37,7 @@ describe('CurrentPrincipalDecorator', () => {
   it('should extract the staff principal from the request', () => {
     const principal: AuthenticatedPrincipal = {
       sub: 'user-uuid-123',
+      authFlow: AuthFlow.INTERNAL,
       email: 'john@example.com',
       role: UserRole.ADMIN,
     };
@@ -51,6 +53,7 @@ describe('CurrentPrincipalDecorator', () => {
     testRoles.forEach((role) => {
       const principal: AuthenticatedPrincipal = {
         sub: `user-${role}`,
+        authFlow: AuthFlow.INTERNAL,
         email: `${role.toLowerCase()}@example.com`,
         role,
       };
@@ -59,5 +62,13 @@ describe('CurrentPrincipalDecorator', () => {
 
       expect(result).toEqual(expect.objectContaining({ role }));
     });
+  });
+
+  it('should extract the customer principal, which carries only the subject', () => {
+    const principal: AuthenticatedPrincipal = { sub: 'user-uuid-456', authFlow: AuthFlow.CUSTOMER };
+
+    const result = factory(null, buildContext(principal));
+
+    expect(result).toEqual(principal);
   });
 });

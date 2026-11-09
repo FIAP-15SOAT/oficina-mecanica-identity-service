@@ -3,6 +3,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { sign, SignOptions } from 'jsonwebtoken';
 
+import { AuthFlow } from '@domain/enums/auth-flow.enum';
 import { UserRole } from '@domain/enums/user-role.enum';
 import { JwtStrategy } from '@infrastructure/http/strategies/jwt.strategy';
 
@@ -99,7 +100,12 @@ describe('JwtStrategy', () => {
 
   it('should accept a valid access token', async () => {
     await expect(authenticate(signTestStaffToken(CLAIMS))).resolves.toEqual({
-      success: { sub: CLAIMS.sub, email: CLAIMS.email, role: UserRole.ADMIN },
+      success: {
+        sub: CLAIMS.sub,
+        authFlow: AuthFlow.INTERNAL,
+        email: CLAIMS.email,
+        role: UserRole.ADMIN,
+      },
     });
   });
 

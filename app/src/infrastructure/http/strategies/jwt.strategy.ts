@@ -5,6 +5,7 @@ import type { JwtHeader } from 'jsonwebtoken';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { AuthenticatedPrincipal } from '@application/auth/authenticated-principal';
+import { AuthFlow } from '@domain/enums/auth-flow.enum';
 import { UserRole } from '@domain/enums/user-role.enum';
 import { readPemKey } from '@infrastructure/utils/read-pem-key.util';
 import { STAFF_TOKEN_ALGORITHM } from '@infrastructure/services/staff-token.constants';
@@ -56,6 +57,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Token inválido');
     }
 
-    return { sub: payload.sub, email: payload.email, role: payload.role as UserRole };
+    return {
+      sub: payload.sub,
+      authFlow: AuthFlow.INTERNAL,
+      email: payload.email,
+      role: payload.role as UserRole,
+    };
   }
 }
