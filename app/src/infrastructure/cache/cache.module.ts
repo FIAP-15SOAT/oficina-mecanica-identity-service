@@ -7,8 +7,8 @@ import { ValkeyPasswordResetCodeStore } from './valkey-password-reset-code.store
 @Module({
   providers: [
     { provide: 'ICache', useClass: ValkeyCacheAdapter },
-    { provide: 'PASSWORD_RESET_CODE_STORE', useClass: ValkeyPasswordResetCodeStore },
+    { provide: 'IPasswordResetCodeStore', useClass: ValkeyPasswordResetCodeStore },
   ],
-  exports: ['ICache', 'PASSWORD_RESET_CODE_STORE'],
+  exports: ['ICache', 'IPasswordResetCodeStore'],
 })
 export class CacheModule {}

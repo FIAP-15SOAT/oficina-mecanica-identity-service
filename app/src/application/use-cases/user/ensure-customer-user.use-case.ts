@@ -25,15 +25,27 @@ export class EnsureCustomerUserUseCase implements IEnsureCustomerUserUseCase {
     const cpf = Cpf.create(input.cpf).value;
     const email = input.email.trim().toLowerCase();
 
-    const result = await this.unitOfWork.executeTransaction((repos) =>
-      this.resolveUser(repos, { name: input.name, email, cpf }),
-    );
+    const user = { name: input.name, email, cpf };
+
+    // A concurrent call for the same CPF can insert between the reads and the create; the retry
+    // reads that user and answers like a repeated call.
+    const result = await this.resolveInTransaction(user).catch((error: unknown) => {
+      if (error instanceof ResourceConflictException) {
+        return this.resolveInTransaction(user);
+      }
+
+      throw error;
+    });
 
     if (result.created) {
       this.logger.event(BUSINESS_EVENTS.CUSTOMER_USER_CREATED, { targetUserId: result.userId });
     }
 
     return result;
+  }
+
+  private resolveInTransaction(input: EnsureCustomerUserDto): Promise<EnsureCustomerUserOutputDto> {
+    return this.unitOfWork.executeTransaction((repos) => this.resolveUser(repos, input));
   }
 
   // A matching CPF is the same person and is reused. An e-mail that belongs to anyone else is a

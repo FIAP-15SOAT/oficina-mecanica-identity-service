@@ -175,6 +175,7 @@ describe('Me (E2E)', () => {
 
       expect(await valkey.exists(identityCacheKeys.user(user.id))).toBe(1);
 
+      const changeStartedAt = Date.now();
       await request(httpServer)
         .patch('/api/me/password')
         .set('Authorization', customerTokenFor(user))
@@ -184,12 +185,19 @@ describe('Me (E2E)', () => {
       const updated = await ctx.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
 
       expect(await bcrypt.compare(NEW_PASSWORD, updated.passwordHash)).toBe(true);
-      expect(updated.passwordChangedAt.getTime()).toBeGreaterThan(0);
+      expect(updated.passwordChangedAt.getTime()).toBeGreaterThanOrEqual(changeStartedAt);
       expect(await valkey.exists(identityCacheKeys.user(user.id))).toBe(0);
     });
 
-    it('should let a staff user change the password', async () => {
+    it('should let a staff user change the password and end the sessions issued before', async () => {
       const user = await createUser(UserRole.MECHANIC);
+      const login = await request(httpServer)
+        .post('/api/auth/login')
+        .send({ email: user.email, password: PASSWORD })
+        .expect(200);
+
+      // iat has one-second granularity: make the change land in a later second than the login.
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
       await request(httpServer)
         .patch('/api/me/password')
@@ -200,6 +208,13 @@ describe('Me (E2E)', () => {
       const updated = await ctx.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
 
       expect(await bcrypt.compare(NEW_PASSWORD, updated.passwordHash)).toBe(true);
+
+      const refresh = await request(httpServer)
+        .post('/api/auth/refresh')
+        .send({ refreshToken: login.body.data.refreshToken })
+        .expect(401);
+
+      expect(refresh.body.message).toBe('Refresh token inválido ou expirado');
     });
 
     it.each([

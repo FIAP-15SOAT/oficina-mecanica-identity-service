@@ -117,6 +117,30 @@ describe('EnsureCustomerUserUseCase', () => {
     expect(outbox.add).not.toHaveBeenCalled();
   });
 
+  it('should return the CPF owner when a concurrent call inserts the same CPF first', async () => {
+    const owner = createMockUser({ cpf: Cpf.create('12345678909') });
+    userRepository.findByCpf.mockResolvedValueOnce(null).mockResolvedValueOnce(owner);
+    userRepository.create.mockRejectedValue(new ResourceConflictException('CPF já cadastrado'));
+
+    const result = await useCase.execute(input);
+
+    expect(result).toEqual({ userId: owner.id, created: false });
+    expect(unitOfWork.executeTransaction).toHaveBeenCalledTimes(2);
+    expect(userRepository.create).toHaveBeenCalledTimes(1);
+    expect(outbox.add).not.toHaveBeenCalled();
+    expect(logger.event).not.toHaveBeenCalled();
+  });
+
+  it('should return 409 when the conflict persists on the retry', async () => {
+    userRepository.create.mockRejectedValue(new ResourceConflictException('CPF já cadastrado'));
+
+    await expect(useCase.execute(input)).rejects.toThrow(
+      new ResourceConflictException('CPF já cadastrado'),
+    );
+
+    expect(unitOfWork.executeTransaction).toHaveBeenCalledTimes(2);
+  });
+
   it('should reject an invalid CPF before touching the database', async () => {
     await expect(useCase.execute({ ...input, cpf: '123.456.789-00' })).rejects.toThrow(
       new DomainValidationException('CPF inválido'),

@@ -140,7 +140,7 @@ jobs:
           if-no-files-found: warn
 
       # Second pass: same ephemeral stack, authenticated as a workshop customer,
-      # which covers GET /api/me beyond what the staff pass reaches.
+      # which exercises the customer-token path of GET /api/me and PATCH /api/me/password.
       - name: Run OWASP ZAP API scan with customer auth
         run: |
           docker run --rm \

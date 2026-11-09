@@ -58,7 +58,7 @@ import { AuthController } from './auth.controller';
         'ICache',
         'IHashService',
         'ITokenService',
-        'PASSWORD_RESET_CODE_STORE',
+        'IPasswordResetCodeStore',
         'ILogger',
       ],
     },

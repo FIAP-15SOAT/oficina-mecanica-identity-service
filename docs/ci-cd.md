@@ -46,7 +46,7 @@ Os passos são de um job só, `zap-scan`:
 2. sobe o `docker-compose` do `app/` com o arquivo adicional `app/docker-compose.dast.yml`, que acrescenta o `internal-stubs`, um stub do Work Order (`.zap/internal-services-stub.mjs`) que responde `GET /internal/users/:userId/customers` com a fixture de contrato; sem ele, `GET /api/me` responderia 503 e o ZAP apontaria o erro. A migração roda com o seed;
 3. faz login (`POST /api/auth/login`) com o ADMIN semeado, cujo e-mail e senha `Tech@2026` ficam no próprio workflow, porque já são públicos no seed e na collection; o access token, mascarado, é o token da primeira varredura;
 4. lê no PostgreSQL do stack o id do usuário de cliente semeado `joao.silva@email.com`, assina com a privada do par de cliente um token de cliente de 60 minutos (`iss = oficina-customer-auth`, `aud = oficina-api`) e apaga a privada;
-5. o OWASP ZAP 2.17 varre o contrato em `http://api:3000/api/docs-json`, pela rede do Compose, duas vezes: com o token do ADMIN (relatório `zap-report`) e com o token de cliente, que alcança `/api/me` (relatório `zap-report-customer`), as duas com as regras de `.zap/rules.tsv`.
+5. o OWASP ZAP 2.17 varre o contrato em `http://api:3000/api/docs-json`, pela rede do Compose, duas vezes: com o token do ADMIN (relatório `zap-report`) e com o token de cliente, que exercita o caminho do token de cliente em `/api/me` (relatório `zap-report-customer`), as duas com as regras de `.zap/rules.tsv`.
 
 Os relatórios HTML e JSON vão como artefatos e a stack é derrubada no fim.
 

@@ -77,10 +77,10 @@ Todas as rotas exigem o token de funcionário com o papel `ADMIN`.
 | DELETE | `/:id` | Exclui o usuário | 204, 400, 401, 403, 404 |
 | POST | `/:userId/password-resets` | Gera um código de redefinição de senha e o envia por e-mail ao usuário | 204, 400, 401, 403, 404, 503 |
 
-- **Criação.** Corpo: `name` (3 a 150 caracteres), `email`, `role` (`ADMIN`, `MECHANIC` ou `ATTENDANT`) e `cpf` opcional (texto). E-mail já usado responde **409** com `E-mail já cadastrado no sistema`; CPF com dígito verificador errado responde **422** com `CPF inválido`. A senha inicial, de 12 caracteres, vai só no e-mail `staff_initial_password`, gravado no outbox (a tabela onde a mensagem é gravada na mesma transação do dado, depois publicada para a Lambda que envia o e-mail) na mesma transação da criação ([Mensageria](messaging.md)); a resposta nunca a traz.
+- **Criação.** Corpo: `name` (3 a 150 caracteres), `email`, `role` (`ADMIN`, `MECHANIC` ou `ATTENDANT`) e `cpf` opcional (texto). E-mail já usado responde **409** com `E-mail já cadastrado no sistema` e CPF já usado, com `CPF já cadastrado`; CPF com dígito verificador errado responde **422** com `CPF inválido`. A senha inicial, de 12 caracteres, vai só no e-mail `staff_initial_password`, gravado no outbox (a tabela onde a mensagem é gravada na mesma transação do dado, depois publicada para a Lambda que envia o e-mail) na mesma transação da criação ([Mensageria](messaging.md)); a resposta nunca a traz.
 - **Listagem.** Query: `page` (padrão 1), `limit` (padrão 10, máximo 100), `role` e `name` (busca parcial, sem diferenciar maiúsculas). Resposta `{ data: [...], pagination: { page, limit, totalRecords, totalPages } }`.
 - **Detalhe.** Resposta `{ data: { id, name, email, role, isActive, createdAt, updatedAt } }`, lida do cache `identity:user:<id>` quando há. Id que não é UUID responde **400**; usuário inexistente, **404** com `Usuário não encontrado(a) com identificador: <id>`.
-- **Atualização.** Corpo com `name`, `email` e `role`, todos opcionais e com as mesmas regras da criação; o CPF não muda por aqui. E-mail de outro usuário responde **409**.
+- **Atualização.** Corpo com `name`, `email` e `role`, todos opcionais e com as mesmas regras da criação; o CPF não muda por aqui. E-mail de outro usuário responde **409** com `E-mail já cadastrado no sistema`.
 - **Status.** Ativar o usuário já ativo responde **422** com `Usuário já está ativo`; desativar o já desativado, **422** com `Usuário já está desativado`. O usuário desativado não faz login nem refresh, mas o access que ele já tem vale até expirar ([Segurança](security.md#janelas-de-revogação-aceitas)).
 - **Pedido de código.** Gera um código de 6 dígitos, guarda o hash dele no Valkey por 10 minutos e grava o e-mail `password_reset_code` no outbox. Um pedido novo substitui o código pendente. Valkey indisponível responde **503** com a mensagem da confirmação, e nada vai para o outbox.
 
@@ -124,7 +124,7 @@ As chaves e as janelas de revogação estão em [Segurança](security.md).
 
 ## Formato de resposta
 
-Sucesso com corpo: `{ "data": ... }`, e a listagem paginada acrescenta `pagination`. Datas em ISO 8601 com o fuso de `TZ` (`America/Sao_Paulo`). `204` não tem corpo.
+Sucesso com corpo: `{ "data": ... }`, e a listagem paginada acrescenta `pagination`. Datas em ISO 8601 no horário de Brasília, com o deslocamento fixo `-03:00`. `204` não tem corpo.
 
 ## Erros
 
@@ -136,7 +136,7 @@ Todo erro sai como `{ "statusCode", "error", "message" }`, com a mensagem em por
 | 401 | Token ausente ou inválido, credenciais recusadas, refresh recusado, código de redefinição recusado, senha atual incorreta |
 | 403 | Papel sem permissão na rota |
 | 404 | Usuário não encontrado |
-| 409 | E-mail já cadastrado, e-mail de outra pessoa no usuário de acesso do cliente, senha nova igual à atual |
+| 409 | E-mail ou CPF já cadastrado, e-mail de outra pessoa no usuário de acesso do cliente, senha nova igual à atual |
 | 422 | Regra de domínio: CPF inválido, senha fraca, usuário já no status pedido |
 | 503 | Valkey indisponível na redefinição de senha; Work Order sem resposta, com erro 5xx ou com um 4xx em `GET /api/me` |
 | 500 | Erro inesperado, inclusive PostgreSQL indisponível: `Ocorreu um erro inesperado` |

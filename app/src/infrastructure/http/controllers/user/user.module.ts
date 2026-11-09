@@ -58,7 +58,7 @@ import { UserController } from './user.controller';
         'IUserRepository',
         'ICache',
         'IHashService',
-        'PASSWORD_RESET_CODE_STORE',
+        'IPasswordResetCodeStore',
         'ILogger',
       ],
     },
