@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -6,7 +6,7 @@ import { ILogger } from '@application/ports/output/services/logger.service.inter
 import {
   IPasswordResetCodeStore,
   PasswordResetCodeAttempt,
-} from '@application/ports/output/services/password-reset-code-store.interface';
+} from '@application/ports/output/stores/password-reset-code-store.interface';
 import { PASSWORD_RESET_CODE_TTL_SECONDS } from '@domain/constants/validation/password-reset.constants';
 import { TECHNICAL_EVENTS } from '@infrastructure/logging/technical-event.catalog';
 import { ServiceIntegrationException } from '@infrastructure/exceptions/service-integration.exception';
@@ -26,7 +26,9 @@ return { attempts, redis.call('HGET', KEYS[1], 'codeHash') }
 // Own client, not ICache: the cache swallows Valkey failures, while a reset code that cannot be
 // stored or checked must fail the request.
 @Injectable()
-export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, OnModuleDestroy {
+export class ValkeyPasswordResetCodeStore
+  implements IPasswordResetCodeStore, OnApplicationShutdown
+{
   private readonly client: Redis;
 
   constructor(
@@ -55,7 +57,11 @@ export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, On
 
     // exec resolves with per-command errors instead of rejecting, so a failed HSET or EXPIRE
     // would otherwise look like a stored code.
-    if (!results || results.some(([error]) => error)) {
+    const commandError = results?.find(([error]) => error)?.[0];
+
+    if (!results || commandError) {
+      this.logger.event(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, commandError);
+
       throw new ServiceIntegrationException(FAILURE_MESSAGE);
     }
   }
@@ -84,7 +90,9 @@ export class ValkeyPasswordResetCodeStore implements IPasswordResetCodeStore, On
     }
   }
 
-  async onModuleDestroy(): Promise<void> {
+  // Closes only after the drain window of beforeApplicationShutdown, so requests still in flight
+  // can use the client.
+  async onApplicationShutdown(): Promise<void> {
     // With the offline queue off, quit rejects while the server is unreachable.
     await this.client.quit().catch(() => this.client.disconnect());
   }

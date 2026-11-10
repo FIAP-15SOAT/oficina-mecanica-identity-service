@@ -32,7 +32,7 @@ export class ChangeOwnPasswordUseCase implements IChangeOwnPasswordUseCase {
     const newHash = await this.hashService.hash(dto.newPassword);
     user.changePassword(newHash);
 
-    await this.userRepository.update(user);
+    await this.userRepository.updatePassword(user);
     await this.cache.delete([identityCacheKeys.user(userId)]);
 
     this.logger.event(BUSINESS_EVENTS.USER_PASSWORD_CHANGED, { subjectId: userId });

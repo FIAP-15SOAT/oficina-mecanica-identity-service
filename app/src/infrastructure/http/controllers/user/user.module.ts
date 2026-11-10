@@ -14,7 +14,7 @@ import { IUnitOfWork } from '@domain/interfaces/repositories/unit-of-work.interf
 import { IUserRepository } from '@domain/interfaces/repositories/user.repository.interface';
 import { ICache } from '@application/ports/output/services/cache.service.interface';
 import { IHashService } from '@application/ports/output/services/hash.service.interface';
-import { IPasswordResetCodeStore } from '@application/ports/output/services/password-reset-code-store.interface';
+import { IPasswordResetCodeStore } from '@application/ports/output/stores/password-reset-code-store.interface';
 import { ILogger } from '@application/ports/output/services/logger.service.interface';
 
 import { UserController as UserCleanController } from '@interface-adapters/user/user.controller';
@@ -31,11 +31,11 @@ import { UserController } from './user.controller';
         userRepository: IUserRepository,
         cache: ICache,
         hashService: IHashService,
-        resetCodeStore: IPasswordResetCodeStore,
+        passwordResetCodeStore: IPasswordResetCodeStore,
         logger: ILogger,
       ) =>
         new UserCleanController(
-          new CreateUserUseCase(unitOfWork, hashService),
+          new CreateUserUseCase(userRepository, unitOfWork, hashService),
           new FindUserByIdUseCase(userRepository, cache),
           new FindAllUsersUseCase(userRepository),
           new UpdateUserUseCase(userRepository, cache),
@@ -47,7 +47,7 @@ import { UserController } from './user.controller';
           new DeleteUserUseCase(userRepository, cache),
           new IssuePasswordResetCodeUseCase(
             userRepository,
-            resetCodeStore,
+            passwordResetCodeStore,
             hashService,
             unitOfWork,
             logger.forContext(IssuePasswordResetCodeUseCase.name),

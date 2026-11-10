@@ -25,7 +25,7 @@ describe('ValkeyPasswordResetCodeStore (e2e)', () => {
   }, 120_000);
 
   afterAll(async () => {
-    await store.onModuleDestroy();
+    await store.onApplicationShutdown();
     await inspector.quit();
     await container.stop();
   });

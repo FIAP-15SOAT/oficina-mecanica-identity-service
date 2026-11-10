@@ -35,12 +35,12 @@ function contextFor(controller: object, handler: (...args: never[]) => void): Ex
 }
 
 describe('AuthenticationGuard', () => {
-  let staff: jest.Mocked<JwtAuthGuard>;
+  let jwtAuthGuard: jest.Mocked<JwtAuthGuard>;
   let anyAuthGuard: jest.Mocked<AnyAuthGuard>;
   let guard: AuthenticationGuard;
 
   beforeEach(() => {
-    staff = {
+    jwtAuthGuard = {
       canActivate: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<JwtAuthGuard>;
 
@@ -48,7 +48,7 @@ describe('AuthenticationGuard', () => {
       canActivate: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<AnyAuthGuard>;
 
-    guard = new AuthenticationGuard(new Reflector(), staff, anyAuthGuard);
+    guard = new AuthenticationGuard(new Reflector(), jwtAuthGuard, anyAuthGuard);
   });
 
   it('should let @Public routes through', async () => {
@@ -57,7 +57,7 @@ describe('AuthenticationGuard', () => {
     );
 
     expect(result).toBe(true);
-    expect(staff.canActivate).not.toHaveBeenCalled();
+    expect(jwtAuthGuard.canActivate).not.toHaveBeenCalled();
     expect(anyAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
@@ -67,17 +67,17 @@ describe('AuthenticationGuard', () => {
     );
 
     expect(result).toBe(true);
-    expect(staff.canActivate).not.toHaveBeenCalled();
+    expect(jwtAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
   it('should require the staff token when the route has no marker', async () => {
-    staff.canActivate.mockResolvedValue(false);
+    jwtAuthGuard.canActivate.mockResolvedValue(false);
     const context = contextFor(RoutesController, RoutesController.prototype.staffRoute);
 
     const result = await guard.canActivate(context);
 
     expect(result).toBe(false);
-    expect(staff.canActivate).toHaveBeenCalledWith(context);
+    expect(jwtAuthGuard.canActivate).toHaveBeenCalledWith(context);
     expect(anyAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
@@ -87,7 +87,7 @@ describe('AuthenticationGuard', () => {
     await guard.canActivate(context);
 
     expect(anyAuthGuard.canActivate).toHaveBeenCalledWith(context);
-    expect(staff.canActivate).not.toHaveBeenCalled();
+    expect(jwtAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
   it("should read @CustomerArea('any') from the class", async () => {
@@ -96,6 +96,6 @@ describe('AuthenticationGuard', () => {
     await guard.canActivate(context);
 
     expect(anyAuthGuard.canActivate).toHaveBeenCalledWith(context);
-    expect(staff.canActivate).not.toHaveBeenCalled();
+    expect(jwtAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 });

@@ -20,5 +20,6 @@ export interface IUserRepository {
     filters?: UserFilters,
   ): Promise<PaginatedRepositoryResult<User>>;
   update(user: User): Promise<User>;
+  updatePassword(user: User): Promise<void>;
   delete(id: string): Promise<void>;
 }

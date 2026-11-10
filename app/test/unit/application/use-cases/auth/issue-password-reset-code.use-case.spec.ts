@@ -2,7 +2,7 @@ import { ResourceNotFoundException } from '@application/exceptions/resource-not-
 import { BUSINESS_EVENTS } from '@application/logging/business-event.catalog';
 import { ILogger } from '@application/ports/output/services/logger.service.interface';
 import { IHashService } from '@application/ports/output/services/hash.service.interface';
-import { IPasswordResetCodeStore } from '@application/ports/output/services/password-reset-code-store.interface';
+import { IPasswordResetCodeStore } from '@application/ports/output/stores/password-reset-code-store.interface';
 import { IssuePasswordResetCodeUseCase } from '@application/use-cases/auth/issue-password-reset-code.use-case';
 import { IUnitOfWork } from '@domain/interfaces/repositories/unit-of-work.interface';
 import { IUserRepository } from '@domain/interfaces/repositories/user.repository.interface';
@@ -20,7 +20,7 @@ describe('IssuePasswordResetCodeUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
   let outbox: jest.Mocked<IOutboxRepository>;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
-  let resetCodeStore: jest.Mocked<IPasswordResetCodeStore>;
+  let passwordResetCodeStore: jest.Mocked<IPasswordResetCodeStore>;
   let hashService: jest.Mocked<IHashService>;
   let logger: jest.Mocked<ILogger>;
 
@@ -30,13 +30,13 @@ describe('IssuePasswordResetCodeUseCase', () => {
     unitOfWork = mocks.unitOfWork;
     userRepository = mocks.repos.user as jest.Mocked<IUserRepository>;
     outbox = mocks.repos.outbox as jest.Mocked<IOutboxRepository>;
-    resetCodeStore = createMockPasswordResetCodeStore();
+    passwordResetCodeStore = createMockPasswordResetCodeStore();
     hashService = createMockHashService();
     logger = createMockLogger();
 
     useCase = new IssuePasswordResetCodeUseCase(
       userRepository,
-      resetCodeStore,
+      passwordResetCodeStore,
       hashService,
       unitOfWork,
       logger,
@@ -50,8 +50,8 @@ describe('IssuePasswordResetCodeUseCase', () => {
 
     await useCase.execute(user.id, 'admin-id');
 
-    expect(resetCodeStore.save).toHaveBeenCalledWith(user.id, 'hashed-code');
-    expect(resetCodeStore.save.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(passwordResetCodeStore.save).toHaveBeenCalledWith(user.id, 'hashed-code');
+    expect(passwordResetCodeStore.save.mock.invocationCallOrder[0]).toBeLessThan(
       outbox.add.mock.invocationCallOrder[0],
     );
   });
@@ -81,7 +81,7 @@ describe('IssuePasswordResetCodeUseCase', () => {
   it('should not add the e-mail when the store fails', async () => {
     const user = createMockUser();
     userRepository.findById.mockResolvedValue(user);
-    resetCodeStore.save.mockRejectedValue(new ServiceIntegrationException('valkey down'));
+    passwordResetCodeStore.save.mockRejectedValue(new ServiceIntegrationException('valkey down'));
 
     await expect(useCase.execute(user.id, 'admin-id')).rejects.toThrow(ServiceIntegrationException);
 
@@ -96,7 +96,7 @@ describe('IssuePasswordResetCodeUseCase', () => {
       ResourceNotFoundException,
     );
 
-    expect(resetCodeStore.save).not.toHaveBeenCalled();
+    expect(passwordResetCodeStore.save).not.toHaveBeenCalled();
     expect(outbox.add).not.toHaveBeenCalled();
   });
 

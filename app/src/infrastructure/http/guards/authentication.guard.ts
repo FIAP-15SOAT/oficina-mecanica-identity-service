@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '@infrastructure/http/guards/jwt-auth.guard';
 export class AuthenticationGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly staff: JwtAuthGuard,
+    private readonly jwtAuthGuard: JwtAuthGuard,
     private readonly anyAuthGuard: AnyAuthGuard,
   ) {}
 
@@ -27,6 +27,6 @@ export class AuthenticationGuard implements CanActivate {
 
     const area = this.reflector.getAllAndOverride<CustomerAreaMode>(CUSTOMER_AREA_KEY, targets);
 
-    return (area ? this.anyAuthGuard : this.staff).canActivate(context);
+    return (area ? this.anyAuthGuard : this.jwtAuthGuard).canActivate(context);
   }
 }

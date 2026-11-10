@@ -11,13 +11,13 @@ import { AuthDataResponse } from './responses/auth.response';
 
 export class AuthController {
   constructor(
-    private readonly authenticateUseCase: IAuthenticateUserUseCase,
+    private readonly authenticateUserUseCase: IAuthenticateUserUseCase,
     private readonly refreshTokenUseCase: IRefreshTokenUseCase,
     private readonly confirmPasswordResetUseCase: IConfirmPasswordResetUseCase,
   ) {}
 
   async login(input: LoginRequest): Promise<AuthDataResponse> {
-    const result = await this.authenticateUseCase.execute(input);
+    const result = await this.authenticateUserUseCase.execute(input);
     return AuthPresenter.toAuthDataResponse(result);
   }
 

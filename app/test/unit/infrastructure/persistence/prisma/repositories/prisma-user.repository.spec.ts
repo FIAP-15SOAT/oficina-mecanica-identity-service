@@ -5,7 +5,6 @@ import { ResourceConflictException } from '@application/exceptions/resource-conf
 import { User } from '@domain/entities/user.entity';
 import { UserRole } from '@domain/enums/user-role.enum';
 import { Email } from '@domain/value-objects/email.vo';
-import { Cpf } from '@domain/value-objects/cpf.vo';
 
 import { PrismaUserRepository } from '@infrastructure/persistence/prisma/repositories/prisma-user.repository';
 
@@ -132,46 +131,6 @@ describe('PrismaUserRepository', () => {
             cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'users_cpf_key' } },
           },
           modelName: 'User',
-        },
-      });
-      prisma.user.create.mockRejectedValue(error);
-
-      await expect(repository.create(user)).rejects.toThrow('CPF já cadastrado');
-    });
-
-    it('should report a CPF conflict from the target list when the adapter error is absent', async () => {
-      const user = User.create({
-        name: 'Jane Smith',
-        email: 'jane.smith@example.com',
-        passwordHash: '$2b$10$hashedpassword',
-        role: UserRole.MECHANIC,
-        cpf: '12345678909',
-      });
-
-      const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
-        code: 'P2002',
-        clientVersion: '5.0.0',
-        meta: { target: ['cpf'] },
-      });
-      prisma.user.create.mockRejectedValue(error);
-
-      await expect(repository.create(user)).rejects.toThrow('CPF já cadastrado');
-    });
-
-    it('should report a CPF conflict from the adapter constraint fields', async () => {
-      const user = User.create({
-        name: 'Jane Smith',
-        email: 'jane.smith@example.com',
-        passwordHash: '$2b$10$hashedpassword',
-        role: UserRole.MECHANIC,
-        cpf: '12345678909',
-      });
-
-      const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
-        code: 'P2002',
-        clientVersion: '5.0.0',
-        meta: {
-          driverAdapterError: { cause: { constraint: { fields: ['cpf'] } } },
         },
       });
       prisma.user.create.mockRejectedValue(error);
@@ -366,11 +325,8 @@ describe('PrismaUserRepository', () => {
         data: {
           name: user.name,
           email: user.email.value,
-          cpf: user.cpf?.value ?? null,
-          passwordHash: user.passwordHash,
           role: user.role,
           isActive: user.isActive,
-          passwordChangedAt: user.passwordChangedAt,
         },
       });
     });
@@ -394,35 +350,9 @@ describe('PrismaUserRepository', () => {
       });
       prisma.user.update.mockRejectedValue(error);
 
-      await expect(repository.update(user)).rejects.toThrow(ResourceConflictException);
-    });
-
-    it('should report a CPF conflict distinctly from an email conflict on P2002 update', async () => {
-      const user = User.reconstitute({
-        id: randomUUID(),
-        name: 'Test',
-        email: Email.create('dup@example.com'),
-        passwordHash: '$2b$10$hash',
-        role: UserRole.MECHANIC,
-        cpf: Cpf.create('12345678909'),
-        isActive: true,
-        passwordChangedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      const error = new Prisma.PrismaClientKnownRequestError('Duplicate cpf', {
-        code: 'P2002',
-        clientVersion: '5.0.0',
-        meta: {
-          driverAdapterError: {
-            cause: { kind: 'UniqueConstraintViolation', constraint: { index: 'users_cpf_key' } },
-          },
-          modelName: 'User',
-        },
-      });
-      prisma.user.update.mockRejectedValue(error);
-
-      await expect(repository.update(user)).rejects.toThrow('CPF já cadastrado para outro usuário');
+      await expect(repository.update(user)).rejects.toThrow(
+        new ResourceConflictException('E-mail já cadastrado para outro usuário'),
+      );
     });
 
     it('should rethrow unexpected errors from update', async () => {
@@ -442,6 +372,32 @@ describe('PrismaUserRepository', () => {
       prisma.user.update.mockRejectedValue(unexpectedError);
 
       await expect(repository.update(user)).rejects.toThrow('Database connection lost');
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('should write only the password fields', async () => {
+      const user = User.reconstitute({
+        id: randomUUID(),
+        name: 'Test',
+        email: Email.create('test@example.com'),
+        passwordHash: '$2b$10$newhash',
+        role: UserRole.MECHANIC,
+        cpf: null,
+        isActive: true,
+        passwordChangedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      prisma.user.update.mockResolvedValue(createMockPrismaUser({ id: user.id }));
+
+      await repository.updatePassword(user);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: user.id },
+        data: { passwordHash: user.passwordHash, passwordChangedAt: user.passwordChangedAt },
+      });
     });
   });
 

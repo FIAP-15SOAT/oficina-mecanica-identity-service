@@ -7,12 +7,13 @@ import { IUnitOfWork } from '@domain/interfaces/repositories/unit-of-work.interf
 import { IUserRepository } from '@domain/interfaces/repositories/user.repository.interface';
 
 import { createMockUnitOfWorkWithRepos } from '../../../../helpers/unit-of-work-mock.factory';
-import { createMockUser } from '../../../../helpers/user-mock.factory';
+import { createMockUser, createMockUserRepository } from '../../../../helpers/user-mock.factory';
 
 describe('CreateUserUseCase', () => {
   let useCase: CreateUserUseCase;
   let unitOfWork: jest.Mocked<IUnitOfWork>;
   let userRepository: jest.Mocked<IUserRepository>;
+  let transactionUserRepository: jest.Mocked<IUserRepository>;
   let outbox: jest.Mocked<IOutboxRepository>;
   let hashService: jest.Mocked<IHashService>;
 
@@ -26,7 +27,8 @@ describe('CreateUserUseCase', () => {
     const mocks = createMockUnitOfWorkWithRepos();
 
     unitOfWork = mocks.unitOfWork;
-    userRepository = mocks.repos.user as jest.Mocked<IUserRepository>;
+    userRepository = createMockUserRepository();
+    transactionUserRepository = mocks.repos.user as jest.Mocked<IUserRepository>;
     outbox = mocks.repos.outbox as jest.Mocked<IOutboxRepository>;
     hashService = {
       hash: jest.fn().mockResolvedValue('hashed-generated-password'),
@@ -34,16 +36,16 @@ describe('CreateUserUseCase', () => {
     };
 
     userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.create.mockImplementation((user) => Promise.resolve(user));
+    transactionUserRepository.create.mockImplementation((user) => Promise.resolve(user));
 
-    useCase = new CreateUserUseCase(unitOfWork, hashService);
+    useCase = new CreateUserUseCase(userRepository, unitOfWork, hashService);
   });
 
   it('should hash a generated password and return the public view without it', async () => {
     const result = await useCase.execute(input);
 
     expect(hashService.hash).toHaveBeenCalledWith(expect.any(String));
-    expect(userRepository.create).toHaveBeenCalledWith(
+    expect(transactionUserRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({ passwordHash: 'hashed-generated-password' }),
     );
 
@@ -70,7 +72,7 @@ describe('CreateUserUseCase', () => {
   });
 
   it('should not add the e-mail when the user insert fails', async () => {
-    userRepository.create.mockRejectedValue(new Error('insert failed'));
+    transactionUserRepository.create.mockRejectedValue(new Error('insert failed'));
 
     await expect(useCase.execute(input)).rejects.toThrow('insert failed');
 
@@ -85,7 +87,7 @@ describe('CreateUserUseCase', () => {
     );
 
     expect(hashService.hash).not.toHaveBeenCalled();
-    expect(userRepository.create).not.toHaveBeenCalled();
+    expect(transactionUserRepository.create).not.toHaveBeenCalled();
     expect(outbox.add).not.toHaveBeenCalled();
   });
 });

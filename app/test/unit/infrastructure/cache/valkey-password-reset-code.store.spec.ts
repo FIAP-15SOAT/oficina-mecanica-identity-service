@@ -82,14 +82,16 @@ describe('ValkeyPasswordResetCodeStore', () => {
 
   describe('save with a failed MULTI', () => {
     it('should throw ServiceIntegrationException when a MULTI command fails', async () => {
+      const cause = new Error('READONLY');
       multi.exec.mockResolvedValueOnce([
         [null, 2],
-        [new Error('WRONGTYPE'), null],
+        [cause, null],
       ]);
 
       const result = store.save(USER_ID, 'hash');
 
       await expect(result).rejects.toThrow(new ServiceIntegrationException(FAILURE_MESSAGE));
+      expect(logger.event).toHaveBeenCalledWith(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, cause);
     });
 
     it('should throw ServiceIntegrationException when MULTI returns null', async () => {
@@ -98,6 +100,7 @@ describe('ValkeyPasswordResetCodeStore', () => {
       const result = store.save(USER_ID, 'hash');
 
       await expect(result).rejects.toThrow(new ServiceIntegrationException(FAILURE_MESSAGE));
+      expect(logger.event).toHaveBeenCalledWith(TECHNICAL_EVENTS.CACHE_UNAVAILABLE, {}, undefined);
     });
   });
 
@@ -150,11 +153,11 @@ describe('ValkeyPasswordResetCodeStore', () => {
     });
   });
 
-  describe('onModuleDestroy', () => {
+  describe('onApplicationShutdown', () => {
     it('should quit the client', async () => {
       client.quit.mockResolvedValueOnce('OK');
 
-      await store.onModuleDestroy();
+      await store.onApplicationShutdown();
 
       expect(client.quit).toHaveBeenCalledTimes(1);
       expect(client.disconnect).not.toHaveBeenCalled();
@@ -163,7 +166,7 @@ describe('ValkeyPasswordResetCodeStore', () => {
     it('should disconnect when quit fails', async () => {
       client.quit.mockRejectedValueOnce(new Error('down'));
 
-      await store.onModuleDestroy();
+      await store.onApplicationShutdown();
 
       expect(client.disconnect).toHaveBeenCalledTimes(1);
     });

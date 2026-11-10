@@ -17,17 +17,17 @@ import { UserRole } from '@domain/enums/user-role.enum';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authenticateUseCase: jest.Mocked<IAuthenticateUserUseCase>;
+  let authenticateUserUseCase: jest.Mocked<IAuthenticateUserUseCase>;
   let refreshTokenUseCase: jest.Mocked<IRefreshTokenUseCase>;
   let confirmPasswordResetUseCase: jest.Mocked<IConfirmPasswordResetUseCase>;
 
   beforeEach(() => {
-    authenticateUseCase = { execute: jest.fn() };
+    authenticateUserUseCase = { execute: jest.fn() };
     refreshTokenUseCase = { execute: jest.fn() };
     confirmPasswordResetUseCase = { execute: jest.fn() };
 
     controller = new AuthController(
-      authenticateUseCase,
+      authenticateUserUseCase,
       refreshTokenUseCase,
       confirmPasswordResetUseCase,
     );
@@ -51,12 +51,12 @@ describe('AuthController', () => {
         },
       };
 
-      authenticateUseCase.execute.mockResolvedValue(authResult);
+      authenticateUserUseCase.execute.mockResolvedValue(authResult);
 
       const result = await controller.login(request);
 
       expect(result).toEqual(AuthPresenter.toAuthDataResponse(authResult));
-      expect(authenticateUseCase.execute).toHaveBeenCalledWith(request);
+      expect(authenticateUserUseCase.execute).toHaveBeenCalledWith(request);
     });
   });
 

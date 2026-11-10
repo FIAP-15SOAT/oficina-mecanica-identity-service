@@ -1,6 +1,7 @@
 import { User } from '@domain/entities/user.entity';
 import { PasswordGenerator } from '@domain/services/password-generator';
 import { IUnitOfWork } from '@domain/interfaces/repositories/unit-of-work.interface';
+import { IUserRepository } from '@domain/interfaces/repositories/user.repository.interface';
 
 import { IHashService } from '@application/ports/output/services/hash.service.interface';
 import { ICreateUserUseCase } from '@application/ports/input/user/create-user.use-case.interface';
@@ -13,6 +14,7 @@ import { AccountEmailComposer } from '@application/notifications/account-email.c
 
 export class CreateUserUseCase implements ICreateUserUseCase {
   constructor(
+    private readonly userRepository: IUserRepository,
     private readonly unitOfWork: IUnitOfWork,
     private readonly hashService: IHashService,
   ) {}
@@ -20,7 +22,7 @@ export class CreateUserUseCase implements ICreateUserUseCase {
   async execute(createUserDto: CreateUserDto): Promise<CreateUserOutputDto> {
     const email = createUserDto.email.trim().toLowerCase();
 
-    if (await this.findUserByEmail(email)) {
+    if (await this.userRepository.findByEmail(email)) {
       throw new ResourceConflictException('E-mail já cadastrado no sistema');
     }
 
@@ -48,9 +50,5 @@ export class CreateUserUseCase implements ICreateUserUseCase {
 
       return created.toPublicView();
     });
-  }
-
-  private findUserByEmail(email: string): Promise<User | null> {
-    return this.unitOfWork.executeTransaction((repos) => repos.user.findByEmail(email));
   }
 }

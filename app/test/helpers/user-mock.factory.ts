@@ -47,6 +47,7 @@ export function createMockUserRepository(): jest.Mocked<IUserRepository> {
     findByCpf: jest.fn(),
     findAllPaginated: jest.fn(),
     update: jest.fn(),
+    updatePassword: jest.fn(),
     delete: jest.fn(),
   };
 }

@@ -40,9 +40,7 @@ export class PrismaUserRepository implements IUserRepository {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ResourceConflictException(
-          conflictingField(error) === 'cpf'
-            ? 'CPF já cadastrado'
-            : 'E-mail já cadastrado no sistema',
+          isCpfConflict(error) ? 'CPF já cadastrado' : 'E-mail já cadastrado no sistema',
         );
       }
       throw error;
@@ -106,28 +104,32 @@ export class PrismaUserRepository implements IUserRepository {
     try {
       const updated = await this.prisma.user.update({
         where: { id: user.id },
+        // CPF never changes after creation, and the password has its own write: writing them here
+        // would undo a password change made between this user's read and this write.
         data: {
           name: user.name,
           email: user.email.value,
-          cpf: user.cpf?.value ?? null,
-          passwordHash: user.passwordHash,
           role: user.role,
           isActive: user.isActive,
-          passwordChangedAt: user.passwordChangedAt,
         },
       });
 
       return UserMapper.toDomain(updated);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ResourceConflictException(
-          conflictingField(error) === 'cpf'
-            ? 'CPF já cadastrado para outro usuário'
-            : 'E-mail já cadastrado para outro usuário',
-        );
+        throw new ResourceConflictException('E-mail já cadastrado para outro usuário');
       }
       throw error;
     }
+  }
+
+  // Writes only the password fields, so it cannot undo a status or profile change made while the
+  // new hash was being computed.
+  async updatePassword(user: User): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: user.passwordHash, passwordChangedAt: user.passwordChangedAt },
+    });
   }
 
   async delete(id: string): Promise<void> {
@@ -135,25 +137,12 @@ export class PrismaUserRepository implements IUserRepository {
   }
 }
 
-type AdapterConstraint = { index?: string; fields?: string[] };
-
-// Prisma 7 with the pg adapter reports the violated constraint under meta.driverAdapterError
-// (index name such as users_cpf_key) and no longer sends meta.target.
-function conflictingField(error: Prisma.PrismaClientKnownRequestError): string | undefined {
+// Prisma 7 with the pg adapter reports the violated unique index under meta.driverAdapterError
+// and no longer sends meta.target.
+function isCpfConflict(error: Prisma.PrismaClientKnownRequestError): boolean {
   const meta = error.meta as
-    | {
-        target?: string | string[];
-        driverAdapterError?: { cause?: { constraint?: AdapterConstraint } };
-      }
+    | { driverAdapterError?: { cause?: { constraint?: { index?: string } } } }
     | undefined;
-  const constraint = meta?.driverAdapterError?.cause?.constraint;
 
-  if (constraint?.fields?.length) return constraint.fields[0];
-  if (constraint?.index) return constraint.index.includes('cpf') ? 'cpf' : 'email';
-
-  const target = meta?.target;
-
-  if (Array.isArray(target)) return target[0];
-
-  return target;
+  return meta?.driverAdapterError?.cause?.constraint?.index === 'users_cpf_key';
 }

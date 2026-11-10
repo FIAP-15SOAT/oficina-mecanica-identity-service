@@ -4,7 +4,7 @@ import { IUserRepository } from '@domain/interfaces/repositories/user.repository
 
 import { IHashService } from '@application/ports/output/services/hash.service.interface';
 import { ILogger } from '@application/ports/output/services/logger.service.interface';
-import { IPasswordResetCodeStore } from '@application/ports/output/services/password-reset-code-store.interface';
+import { IPasswordResetCodeStore } from '@application/ports/output/stores/password-reset-code-store.interface';
 import { IIssuePasswordResetCodeUseCase } from '@application/ports/input/auth/issue-password-reset-code.use-case.interface';
 import { AccountEmailComposer } from '@application/notifications/account-email.composer';
 import { BUSINESS_EVENTS } from '@application/logging/business-event.catalog';
@@ -13,7 +13,7 @@ import { ResourceNotFoundException } from '@application/exceptions/resource-not-
 export class IssuePasswordResetCodeUseCase implements IIssuePasswordResetCodeUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly resetCodeStore: IPasswordResetCodeStore,
+    private readonly passwordResetCodeStore: IPasswordResetCodeStore,
     private readonly hashService: IHashService,
     private readonly unitOfWork: IUnitOfWork,
     private readonly logger: ILogger,
@@ -29,7 +29,7 @@ export class IssuePasswordResetCodeUseCase implements IIssuePasswordResetCodeUse
     const plainCode = ResetCodeGenerator.generate();
 
     // The code must be stored before the e-mail is queued: an e-mail with a code nobody can confirm is worse than no e-mail.
-    await this.resetCodeStore.save(user.id, await this.hashService.hash(plainCode));
+    await this.passwordResetCodeStore.save(user.id, await this.hashService.hash(plainCode));
 
     await this.unitOfWork.executeTransaction((repos) =>
       repos.outbox.add(

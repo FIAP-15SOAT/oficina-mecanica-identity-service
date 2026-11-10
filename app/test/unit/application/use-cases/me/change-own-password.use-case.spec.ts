@@ -33,8 +33,6 @@ describe('ChangeOwnPasswordUseCase', () => {
 
     logger = createMockLogger();
 
-    userRepository.update.mockImplementation((user) => Promise.resolve(user));
-
     useCase = new ChangeOwnPasswordUseCase(userRepository, hashService, cache, logger);
   });
 
@@ -48,7 +46,7 @@ describe('ChangeOwnPasswordUseCase', () => {
     expect(hashService.compare).toHaveBeenCalledWith(INPUT.currentPassword, 'current-hash');
     expect(hashService.hash).toHaveBeenCalledWith(INPUT.newPassword);
 
-    expect(userRepository.update).toHaveBeenCalledWith(
+    expect(userRepository.updatePassword).toHaveBeenCalledWith(
       expect.objectContaining({ passwordHash: 'new-hash' }),
     );
 
@@ -75,7 +73,7 @@ describe('ChangeOwnPasswordUseCase', () => {
     expect(cache.delete).toHaveBeenCalledWith([identityCacheKeys.user(user.id)]);
 
     expect(cache.delete.mock.invocationCallOrder[0]).toBeGreaterThan(
-      userRepository.update.mock.invocationCallOrder[0],
+      userRepository.updatePassword.mock.invocationCallOrder[0],
     );
   });
 
@@ -87,7 +85,7 @@ describe('ChangeOwnPasswordUseCase', () => {
       useCase.execute('user-id', { ...INPUT, currentPassword: 'Wrong@123' }),
     ).rejects.toThrow(new UnauthorizedAccessException('Senha atual incorreta'));
 
-    expect(userRepository.update).not.toHaveBeenCalled();
+    expect(userRepository.updatePassword).not.toHaveBeenCalled();
     expect(cache.delete).not.toHaveBeenCalled();
   });
 
@@ -100,7 +98,7 @@ describe('ChangeOwnPasswordUseCase', () => {
       new BusinessRuleViolationException('A nova senha não pode ser igual à senha atual'),
     );
 
-    expect(userRepository.update).not.toHaveBeenCalled();
+    expect(userRepository.updatePassword).not.toHaveBeenCalled();
   });
 
   it('should reject a new password that does not meet the strength policy', async () => {
@@ -110,7 +108,7 @@ describe('ChangeOwnPasswordUseCase', () => {
       DomainValidationException,
     );
 
-    expect(userRepository.update).not.toHaveBeenCalled();
+    expect(userRepository.updatePassword).not.toHaveBeenCalled();
   });
 
   it('should throw ResourceNotFoundException when the authenticated user no longer exists', async () => {
