@@ -2,6 +2,7 @@ import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 import { RolesGuard } from '@infrastructure/http/guards/roles.guard';
+import { AuthFlow } from '@domain/enums/auth-flow.enum';
 import { UserRole } from '@domain/enums/user-role.enum';
 
 import { ROLES_KEY } from '@infrastructure/http/decorators/roles.decorator';
@@ -32,6 +33,7 @@ describe('RolesGuard', () => {
     const result = guard.canActivate(mockExecutionContext);
 
     expect(result).toBe(true);
+
     expect(reflector.getAllAndOverride).toHaveBeenCalledWith(ROLES_KEY, [
       mockExecutionContext.getHandler(),
       mockExecutionContext.getClass(),
@@ -50,7 +52,7 @@ describe('RolesGuard', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
     (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
-      user: { role: UserRole.ADMIN },
+      user: { authFlow: AuthFlow.INTERNAL, role: UserRole.ADMIN },
     });
 
     const result = guard.canActivate(mockExecutionContext);
@@ -62,7 +64,7 @@ describe('RolesGuard', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
     (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
-      user: { role: UserRole.ATTENDANT },
+      user: { authFlow: AuthFlow.INTERNAL, role: UserRole.ATTENDANT },
     });
 
     const result = guard.canActivate(mockExecutionContext);
@@ -74,7 +76,7 @@ describe('RolesGuard', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN, UserRole.MECHANIC]);
 
     (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
-      user: { role: UserRole.MECHANIC },
+      user: { authFlow: AuthFlow.INTERNAL, role: UserRole.MECHANIC },
     });
 
     const result = guard.canActivate(mockExecutionContext);
@@ -86,7 +88,19 @@ describe('RolesGuard', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN, UserRole.MECHANIC]);
 
     (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
-      user: { role: UserRole.ATTENDANT },
+      user: { authFlow: AuthFlow.INTERNAL, role: UserRole.ATTENDANT },
+    });
+
+    const result = guard.canActivate(mockExecutionContext);
+
+    expect(result).toBe(false);
+  });
+
+  it('should deny a customer principal, which has no role', () => {
+    reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
+
+    (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
+      user: { sub: 'user-id', authFlow: AuthFlow.CUSTOMER },
     });
 
     const result = guard.canActivate(mockExecutionContext);
@@ -104,7 +118,7 @@ describe('RolesGuard', () => {
     reflector.getAllAndOverride.mockReturnValue([UserRole.ADMIN]);
 
     (mockExecutionContext.switchToHttp().getRequest as jest.Mock).mockReturnValue({
-      user: { role: UserRole.ADMIN },
+      user: { authFlow: AuthFlow.INTERNAL, role: UserRole.ADMIN },
     });
 
     guard.canActivate(mockExecutionContext);

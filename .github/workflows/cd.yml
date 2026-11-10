@@ -111,21 +111,31 @@ jobs:
           fi
 
       # Fail fast with an explicit cause, before spending an AWS authentication and
-      # a kubectl apply: without these keys, the cluster Secret goes up with empty or
+      # a kubectl apply: without these keys, the cluster Secrets go up with empty or
       # malformed values and the API pod only fails later, in CrashLoopBackOff.
       - name: Validate required secrets
         env:
+          CUSTOMER_JWT_PUBLIC_KEY: ${{ secrets.CUSTOMER_JWT_PUBLIC_KEY }}
+          STAFF_JWT_PRIVATE_KEY: ${{ secrets.STAFF_JWT_PRIVATE_KEY }}
+          STAFF_JWT_REFRESH_PRIVATE_KEY: ${{ secrets.STAFF_JWT_REFRESH_PRIVATE_KEY }}
           STAFF_JWT_PUBLIC_KEY: ${{ secrets.STAFF_JWT_PUBLIC_KEY }}
           STAFF_JWT_KEY_ID: ${{ secrets.STAFF_JWT_KEY_ID }}
         run: |
-          if [ -z "${STAFF_JWT_PUBLIC_KEY}" ]; then
-            echo "::error::STAFF_JWT_PUBLIC_KEY não está configurado nos secrets da organização."
-            exit 1
-          fi
-          case "${STAFF_JWT_PUBLIC_KEY}" in
-            *"BEGIN PUBLIC KEY"*) ;;
-            *) echo "::error::STAFF_JWT_PUBLIC_KEY não parece um bloco PEM \"BEGIN PUBLIC KEY\"."; exit 1 ;;
-          esac
+          # require_pem <variable> <expected PEM block> <where it is registered>
+          require_pem() {
+            if [ -z "${!1}" ]; then
+              echo "::error::$1 não está configurado nos $3."
+              exit 1
+            fi
+            case "${!1}" in
+              *"BEGIN $2"*) ;;
+              *) echo "::error::$1 não parece um bloco PEM \"BEGIN $2\"."; exit 1 ;;
+            esac
+          }
+          require_pem CUSTOMER_JWT_PUBLIC_KEY 'PUBLIC KEY' 'secrets do repositório'
+          require_pem STAFF_JWT_PRIVATE_KEY 'PRIVATE KEY' 'secrets do environment production'
+          require_pem STAFF_JWT_REFRESH_PRIVATE_KEY 'PRIVATE KEY' 'secrets do environment production'
+          require_pem STAFF_JWT_PUBLIC_KEY 'PUBLIC KEY' 'secrets da organização'
           if [ -z "${STAFF_JWT_KEY_ID}" ]; then
             echo "::error::STAFF_JWT_KEY_ID não está configurado nos secrets da organização."
             exit 1
@@ -244,6 +254,9 @@ jobs:
 
       - name: Render and apply application secrets and ConfigMap
         env:
+          STAFF_JWT_PRIVATE_KEY: ${{ secrets.STAFF_JWT_PRIVATE_KEY }}
+          STAFF_JWT_REFRESH_PRIVATE_KEY: ${{ secrets.STAFF_JWT_REFRESH_PRIVATE_KEY }}
+          CUSTOMER_JWT_PUBLIC_KEY: ${{ secrets.CUSTOMER_JWT_PUBLIC_KEY }}
           STAFF_JWT_PUBLIC_KEY: ${{ secrets.STAFF_JWT_PUBLIC_KEY }}
           STAFF_JWT_KEY_ID: ${{ secrets.STAFF_JWT_KEY_ID }}
           OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.OTEL_EXPORTER_OTLP_ENDPOINT }}
@@ -251,14 +264,21 @@ jobs:
         run: |
           set -euo pipefail
           b64() { printf '%s' "$1" | base64 -w0; }
+          STAFF_JWT_PRIVATE_KEY_B64="$(b64 "${STAFF_JWT_PRIVATE_KEY}")"
+          STAFF_JWT_REFRESH_PRIVATE_KEY_B64="$(b64 "${STAFF_JWT_REFRESH_PRIVATE_KEY}")"
+          CUSTOMER_JWT_PUBLIC_KEY_B64="$(b64 "${CUSTOMER_JWT_PUBLIC_KEY}")"
           STAFF_JWT_PUBLIC_KEY_B64="$(b64 "${STAFF_JWT_PUBLIC_KEY}")"
           STAFF_JWT_KEY_ID_B64="$(b64 "${STAFF_JWT_KEY_ID}")"
+          echo "::add-mask::${STAFF_JWT_PRIVATE_KEY_B64}"
+          echo "::add-mask::${STAFF_JWT_REFRESH_PRIVATE_KEY_B64}"
+          echo "::add-mask::${CUSTOMER_JWT_PUBLIC_KEY_B64}"
           echo "::add-mask::${STAFF_JWT_PUBLIC_KEY_B64}"
           echo "::add-mask::${STAFF_JWT_KEY_ID_B64}"
-          export STAFF_JWT_PUBLIC_KEY_B64 STAFF_JWT_KEY_ID_B64
+          export STAFF_JWT_PRIVATE_KEY_B64 STAFF_JWT_REFRESH_PRIVATE_KEY_B64 CUSTOMER_JWT_PUBLIC_KEY_B64 \
+            STAFF_JWT_PUBLIC_KEY_B64 STAFF_JWT_KEY_ID_B64
           # shellcheck disable=SC2016 # envsubst receives the variable names literally
-          yq 'select(.metadata.name == "jwt-public-keys")' k8s/01-secrets.yaml \
-            | envsubst '${STAFF_JWT_PUBLIC_KEY_B64} ${STAFF_JWT_KEY_ID_B64}' \
+          yq 'select(.metadata.name == "jwt-private-keys" or .metadata.name == "jwt-public-keys")' k8s/01-secrets.yaml \
+            | envsubst '${STAFF_JWT_PRIVATE_KEY_B64} ${STAFF_JWT_REFRESH_PRIVATE_KEY_B64} ${CUSTOMER_JWT_PUBLIC_KEY_B64} ${STAFF_JWT_PUBLIC_KEY_B64} ${STAFF_JWT_KEY_ID_B64}' \
             | kubectl apply -f -
 
           AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
@@ -272,13 +292,13 @@ jobs:
           kubectl apply -f k8s/02-identity-configmap.rendered.yaml
 
   db-migrate:
-    name: DB Migrate
+    name: DB Migrate & Seed
     runs-on: ubuntu-latest
     environment: production
     needs:
       - build-push-image
       - prepare-deploy
-    # A rollback image would run its older migrations over the newer schema.
+    # A rollback image would run its older migrations and seed over the newer schema.
     if: >-
       github.ref == 'refs/heads/main' &&
       (vars.ENABLE_DEPLOY == 'true' || github.event_name == 'workflow_dispatch') &&

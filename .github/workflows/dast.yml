@@ -15,13 +15,17 @@ permissions:
   contents: read
 
 env:
-  COMPOSE_FILE: app/docker-compose.yml
+  COMPOSE_FILE: app/docker-compose.yml:app/docker-compose.dast.yml
   COMPOSE_PROJECT_NAME: dast
   # Host URL of the target, for reference: ZAP reaches the API as http://api:3000 on the compose network.
   API_BASE_URL: http://localhost:3001
+  # Public seed credentials (prisma/seeds/user.seed.ts and the Postman collection).
+  SEED_ADMIN_EMAIL: guilhermedarochasalvador@gmail.com
+  SEED_ADMIN_PASSWORD: Tech@2026
+  SEED_CUSTOMER_USER_EMAIL: joao.silva@email.com
   STAFF_JWT_KEY_ID: staff-dast
-  STAFF_JWT_ISSUER: oficina-identity
-  STAFF_JWT_AUDIENCE: oficina-services
+  CUSTOMER_JWT_ISSUER: oficina-customer-auth
+  CUSTOMER_JWT_AUDIENCE: oficina-api
   STACK_WAIT_TIMEOUT: 180
 
 jobs:
@@ -31,37 +35,30 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      # Ephemeral key pair, generated on every run and never committed. The job
-      # plays the role of Identity: it signs an ADMIN access token with the
-      # private key and gives the service only the public key. The private key
-      # is deleted right after signing.
-      - name: Generate an ephemeral RS256 key pair and sign an ADMIN staff token
+      # Ephemeral key pairs, generated on every run and never committed. The
+      # staff pairs (access and refresh) are the service's own keys; the customer
+      # pair stands in for the external customer-auth Lambda (out of scope), so
+      # the job signs its own customer token with the private half.
+      - name: Generate ephemeral RS256 key pairs for the staff and customer tokens
         run: |
           set -euo pipefail
-          key_dir="$RUNNER_TEMP/staff-jwt"
-          mkdir -p "$key_dir"
-          trap 'rm -rf "$key_dir"' EXIT
-
-          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$key_dir/private.pem"
-          openssl pkey -in "$key_dir/private.pem" -pubout -out "$key_dir/public.pem"
-
-          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
-
-          now="$(date +%s)"
-          exp="$((now + 3600))"
-          header="{\"alg\":\"RS256\",\"typ\":\"JWT\",\"kid\":\"${STAFF_JWT_KEY_ID}\"}"
-          payload="{\"sub\":\"dast-admin\",\"email\":\"dast-admin@example.com\",\"role\":\"ADMIN\",\"typ\":\"access\",\"iss\":\"${STAFF_JWT_ISSUER}\",\"aud\":\"${STAFF_JWT_AUDIENCE}\",\"iat\":${now},\"exp\":${exp}}"
-
-          signing_input="$(printf '%s' "$header" | b64url).$(printf '%s' "$payload" | b64url)"
-          signature="$(printf '%s' "$signing_input" | openssl dgst -sha256 -sign "$key_dir/private.pem" | b64url)"
-          rm -f "$key_dir/private.pem"
-          token="${signing_input}.${signature}"
-
-          echo "::add-mask::$token"
+          pem_line() { awk 'NF {sub(/\r/, ""); printf "%s\\n", $0}' "$1"; }
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/customer-jwt.key
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/staff-jwt.key
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /tmp/staff-refresh.key
+          openssl pkey -in /tmp/customer-jwt.key -pubout -out /tmp/customer-jwt.pub
+          openssl pkey -in /tmp/staff-jwt.key -pubout -out /tmp/staff-jwt.pub
+          staff_private="$(pem_line /tmp/staff-jwt.key)"
+          refresh_private="$(pem_line /tmp/staff-refresh.key)"
+          echo "::add-mask::$staff_private"
+          echo "::add-mask::$refresh_private"
           {
-            echo "STAFF_JWT_PUBLIC_KEY=$(awk 'NF {sub(/\r/, ""); printf "%s\\n", $0}' "$key_dir/public.pem")"
-            echo "ZAP_AUTH_HEADER_VALUE=Bearer $token"
+            echo "STAFF_JWT_PRIVATE_KEY=$staff_private"
+            echo "STAFF_JWT_REFRESH_PRIVATE_KEY=$refresh_private"
+            echo "STAFF_JWT_PUBLIC_KEY=$(pem_line /tmp/staff-jwt.pub)"
+            echo "CUSTOMER_JWT_PUBLIC_KEY=$(pem_line /tmp/customer-jwt.pub)"
           } >> "$GITHUB_ENV"
+          rm /tmp/staff-jwt.key /tmp/staff-refresh.key
 
       - name: Start the target stack and wait for it to become healthy
         run: |
@@ -71,6 +68,43 @@ jobs:
             docker compose logs --no-color --tail 200
             exit 1
           fi
+
+      - name: Perform authentication for the staff scan pass
+        run: |
+          token="$(curl -fsS -X POST "$API_BASE_URL/api/auth/login" \
+            -H 'Content-Type: application/json' \
+            -d "{\"email\":\"${SEED_ADMIN_EMAIL}\",\"password\":\"${SEED_ADMIN_PASSWORD}\"}" \
+            | jq -r '.data.accessToken' || true)"
+          if [ -z "$token" ] || [ "$token" = "null" ]; then
+            echo "::error::Failed to authenticate against /api/auth/login."
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          echo "ZAP_AUTH_HEADER_VALUE=Bearer $token" >> "$GITHUB_ENV"
+
+      - name: Sign an ephemeral customer JWT for the customer scan pass
+        run: |
+          user_id="$(docker compose exec -T postgres psql -U postgres -d identity_service -tAc \
+            "SELECT id FROM users WHERE email = '${SEED_CUSTOMER_USER_EMAIL}';" | tr -d '[:space:]')"
+          if [ -z "$user_id" ]; then
+            echo "::error::Could not find the seeded customer user (${SEED_CUSTOMER_USER_EMAIL})."
+            exit 1
+          fi
+
+          b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+          now="$(date +%s)"
+          exp="$((now + 3600))"
+          header='{"alg":"RS256","typ":"JWT"}'
+          payload="{\"sub\":\"${user_id}\",\"iss\":\"${CUSTOMER_JWT_ISSUER}\",\"aud\":\"${CUSTOMER_JWT_AUDIENCE}\",\"iat\":${now},\"exp\":${exp}}"
+
+          signing_input="$(printf '%s' "$header" | b64url).$(printf '%s' "$payload" | b64url)"
+          signature="$(printf '%s' "$signing_input" | openssl dgst -sha256 -sign /tmp/customer-jwt.key | b64url)"
+          token="${signing_input}.${signature}"
+          rm -f /tmp/customer-jwt.key
+
+          echo "::add-mask::$token"
+          echo "CUSTOMER_ZAP_AUTH_HEADER_VALUE=Bearer $token" >> "$GITHUB_ENV"
 
       - name: Prepare the ZAP work directory
         run: |
@@ -103,6 +137,33 @@ jobs:
           path: |
             zap-work/zap-report.html
             zap-work/zap-report.json
+          if-no-files-found: warn
+
+      # Second pass: same ephemeral stack, authenticated as a workshop customer,
+      # which exercises the customer-token path of GET /api/me and PATCH /api/me/password.
+      - name: Run OWASP ZAP API scan with customer auth
+        run: |
+          docker run --rm \
+            --network "${COMPOSE_PROJECT_NAME}_default" \
+            -v "$GITHUB_WORKSPACE/zap-work:/zap/wrk:rw" \
+            -e ZAP_AUTH_HEADER=Authorization \
+            -e ZAP_AUTH_HEADER_VALUE="$CUSTOMER_ZAP_AUTH_HEADER_VALUE" \
+            ghcr.io/zaproxy/zaproxy@sha256:8d387b1a63e3425beef4846e39719f5af2a787753af2d8b6558c6257d7a577a2 \
+            zap-api-scan.py \
+              -t http://api:3000/api/docs-json \
+              -f openapi \
+              -c rules.tsv \
+              -r zap-report-customer.html \
+              -J zap-report-customer.json
+
+      - name: Upload the customer ZAP report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: zap-report-customer
+          path: |
+            zap-work/zap-report-customer.html
+            zap-work/zap-report-customer.json
           if-no-files-found: warn
 
       - name: Tear down the stack

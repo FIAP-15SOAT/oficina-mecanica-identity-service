@@ -45,8 +45,15 @@ spec:
 
             - name: PRISMA_HIDE_UPDATE_MESSAGE
               value: "true"
+
+          # `set -e` because the exit status of `sh -c` is the LAST command's:
+          # without it, a failing migration followed by a passing seed makes the
+          # Job end with **success**, and the CD moves on to the rollout with an
+          # outdated schema.
           command:
-            - npx
-            - prisma
-            - migrate
-            - deploy
+            - sh
+            - -c
+            - |
+              set -e
+              npx prisma migrate deploy
+              npx prisma db seed

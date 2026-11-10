@@ -52,6 +52,55 @@ function field(
 }
 
 export const LOGICAL_FIELDS: Readonly<Record<LogicalFieldName, LogicalFieldDefinition>> = {
+  subjectId: {
+    key: 'oficina.auth.subject.id',
+    type: 'string',
+    cardinality: 'high',
+    owner: 'use-case',
+    sensitivity: 'identifier',
+  },
+  subjectName: {
+    key: 'oficina.auth.subject.name',
+    type: 'string',
+    cardinality: 'high',
+    owner: 'use-case',
+    sensitivity: 'pii',
+  },
+  subjectEmail: {
+    key: 'oficina.auth.subject.email',
+    type: 'string',
+    cardinality: 'high',
+    owner: 'use-case',
+    sensitivity: 'pii',
+  },
+  failureReason: {
+    key: 'oficina.auth.failure.reason',
+    type: 'string',
+    cardinality: 'fixed',
+    owner: 'use-case',
+    sensitivity: 'clear',
+  },
+  targetUserId: {
+    key: 'oficina.target.user.id',
+    type: 'string',
+    cardinality: 'high',
+    owner: 'use-case',
+    sensitivity: 'identifier',
+  },
+  targetUserActive: {
+    key: 'oficina.target.user.active',
+    type: 'boolean',
+    cardinality: 'fixed',
+    owner: 'use-case',
+    sensitivity: 'clear',
+  },
+  resetOutcome: {
+    key: 'oficina.user.password_reset.outcome',
+    type: 'string',
+    cardinality: 'fixed',
+    owner: 'use-case',
+    sensitivity: 'clear',
+  },
   workOrderId: {
     key: 'oficina.work_order.id',
     type: 'string',

@@ -7,6 +7,84 @@
       "value": "http://localhost:3001",
       "type": "default",
       "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "adminEmail",
+      "value": "guilhermedarochasalvador@gmail.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "Tech@2026",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "adminUserId",
+      "value": "1c905c27-4c5e-4d85-a53d-914ed8b87bbe",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "customerEmail",
+      "value": "joao.silva@email.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "customerCpf",
+      "value": "12345678909",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "customerPassword",
+      "value": "Tech@2026",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "customerUserId",
+      "value": "212ca9d7-fa8f-4111-9746-d431da68b063",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "runId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "mechanicUserId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "customerAuthRefusal",
+      "value": "",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment"
