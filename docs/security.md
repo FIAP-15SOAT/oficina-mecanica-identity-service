@@ -78,14 +78,14 @@ Não há lista de revogação de token. As janelas abaixo são aceitas pela solu
 | Situação | Onde vale na hora | Janela aceita |
 | --- | --- | --- |
 | Funcionário desativado ou com a senha trocada (pela própria conta ou por redefinição) | Login e refresh recusam com 401: o login confere `isActive`, e o refresh confere `isActive` e recusa o refresh emitido antes de `password_changed_at` | O access que ele já tem continua aceito nas rotas do Identity e dos outros serviços até expirar, **em até 10 minutos** |
-| Usuário de cliente desativado ou com a senha trocada | Hoje a customer-auth ainda confere a credencial no banco do Work Order, então desativar ou trocar a senha de um usuário no Identity ainda não alcança o login do cliente | O token de cliente que ele já tem continua aceito em `GET /api/me` e `PATCH /api/me/password` até expirar, **em até 60 minutos**; os vínculos com clientes vêm do Work Order, que só devolve os ativos |
+| Usuário de cliente desativado ou com a senha trocada | O login do cliente recusa com 401: a customer-auth confere o CPF e a senha em `POST /internal/customer-authentications`, que recusa o usuário desativado e a senha antiga | O token de cliente que ele já tem continua aceito em `GET /api/me` e `PATCH /api/me/password` até expirar, **em até 60 minutos**; os vínculos com clientes vêm do Work Order, que só devolve os ativos |
 | Usuário excluído | Login e refresh; `GET /api/me` e `PATCH /api/me/password` respondem 404, porque o usuário não existe mais | O access de funcionário que ele já tem continua aceito nas demais rotas do Identity e nos outros serviços até expirar, **em até 10 minutos** |
 
 Para encurtar a janela de um funcionário, desative-o e espere o access expirar; não há outro mecanismo.
 
 ## Recusa única na credencial do cliente
 
-`POST /internal/customer-authentications`, o contrato oferecido à customer-auth para conferir o CPF e a senha digitados pelo cliente (hoje ela ainda confere a credencial no banco do Work Order), responde **401** com `Credenciais inválidas` e o mesmo corpo para qualquer recusa: CPF com dígito verificador errado, CPF sem usuário, usuário desativado e senha errada. Se cada caso tivesse uma resposta, quem tenta logins descobriria quais CPFs têm conta na oficina (enumeração de usuários) e concentraria as tentativas de senha neles. Só o corpo malformado, sem um dos campos ou com tipo errado, responde 400, porque isso não depende de nenhum dado cadastrado. O motivo da recusa fica só no evento de log `auth.authentication.failed`, no campo `failureReason`.
+`POST /internal/customer-authentications`, que a customer-auth chama para conferir o CPF e a senha digitados pelo cliente, responde **401** com `Credenciais inválidas` e o mesmo corpo para qualquer recusa: CPF com dígito verificador errado, CPF sem usuário, usuário desativado e senha errada. Se cada caso tivesse uma resposta, quem tenta logins descobriria quais CPFs têm conta na oficina (enumeração de usuários) e concentraria as tentativas de senha neles. Só o corpo malformado, sem um dos campos ou com tipo errado, responde 400, porque isso não depende de nenhum dado cadastrado. O motivo da recusa fica só no evento de log `auth.authentication.failed`, no campo `failureReason`.
 
 ## Senhas e códigos fora dos logs
 

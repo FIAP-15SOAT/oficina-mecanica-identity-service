@@ -2,7 +2,7 @@
 
 Visão do Identity Service como está no repositório: o serviço dono dos usuários, dos papéis e das credenciais da oficina, e o único emissor do token de funcionário. As decisões estão nas [ADRs](adr/).
 
-<p align="center"><img src="diagrams/identity-service.drawio.png" alt="Identity Service: componentes e integrações. O funcionário chama /api com o token RS256 e o cliente da oficina chama só /api/me com o token da customer-auth; as rotas /internal são o contrato oferecido ao Work Order e à customer-auth, em linha tracejada; os use cases usam os repositórios Prisma (users e outbox no PostgreSQL), o ICache e o IPasswordResetCodeStore sobre o Valkey, o JwtTokenService com bcrypt e o gateway que chama GET /internal/users/:userId/customers no Work Order; o relay publica o outbox no SNS FIFO oficina-events.fifo, que entrega à fila notification.fifo da Lambda de notificação" width="100%"></p>
+<p align="center"><img src="diagrams/identity-service.drawio.png" alt="Identity Service: componentes e integrações. O API Gateway, pelo listener 8081 do NLB, encaminha ao serviço /api/auth, /api/users, /api/me, /api/me/password, /health/identity e /docs/identity; o funcionário chama /api com o token RS256 e o cliente da oficina chama só /api/me com o token da customer-auth; o Work Order e a customer-auth chamam as rotas /internal; os use cases usam os repositórios Prisma (users e outbox no PostgreSQL), o ICache e o IPasswordResetCodeStore sobre o Valkey, o JwtTokenService com bcrypt e o gateway que chama GET /internal/users/:userId/customers no Work Order; o relay publica o outbox no SNS FIFO oficina-events.fifo, que entrega à fila notification.fifo da Lambda de notificação" width="100%"></p>
 
 ## Índice
 
@@ -80,9 +80,9 @@ A decisão e as alternativas estão na [ADR 0008](adr/0008-codigo-de-reset-no-va
 
 ## Rotas internas
 
-Rotas sob `/internal`, fora do prefixo `/api`, marcadas com `@Public()` e `@ApiExcludeController()`: não exigem token, não aparecem no Swagger e não são publicadas pelo API Gateway; só respondem pela rede do cluster. São o contrato que o Identity oferece ao Work Order e à customer-auth: hoje nenhum dos dois as chama ainda, e a customer-auth ainda confere a credencial do cliente no banco do Work Order.
+Rotas sob `/internal`, fora do prefixo `/api`, marcadas com `@Public()` e `@ApiExcludeController()`: não exigem token, não aparecem no Swagger e não são publicadas pelo API Gateway; só respondem pela rede do cluster. O Work Order chama `GET /internal/users/:id` e `POST /internal/customer-users`, e a customer-auth chama `POST /internal/customer-authentications` para conferir o CPF e a senha do cliente antes de emitir o token dela.
 
-| Rota | Consumidor do contrato | O que faz |
+| Rota | Quem chama | O que faz |
 | --- | --- | --- |
 | `GET /internal/users/:id` | Work Order | Devolve `{ id, name, email, role, isActive }` pelo cache-aside `identity:user:<id>`, ou 404. `role` é `null` para o usuário de cliente |
 | `POST /internal/customer-users` | Work Order | Recebe `{ name, email, cpf }`. Reaproveita o usuário dono do CPF (`created = false`) ou cria um usuário sem papel com senha inicial, que vai por e-mail pelo outbox na mesma transação (`created = true`). Responde 409 se o e-mail é de um usuário diferente do dono do CPF. Idempotente pelo CPF |
@@ -146,6 +146,6 @@ Cada camada tem a própria hierarquia de exceções e um `APP_FILTER` global que
 
 ## Diagrama de componentes (C4 nível 3)
 
-<p align="center"><img src="c4/images/c4-component.png" alt="Diagrama de Componente C4 da API do Identity: o Funcionário e o Cliente da oficina apresentam os tokens ao componente Guards/Segurança, que encaminha às Autenticação e aos Usuários; as Rotas Internas são o contrato oferecido ao Work Order e à customer-auth, em linha tracejada; os componentes usam Tokens e Hash, Cache e Código de Reset sobre o ElastiCache Valkey, Repositories sobre o PostgreSQL e o Gateway do Work Order; a Mensageria publica o outbox no SNS, que entrega notification.email.send à Lambda de notificação" width="100%"></p>
+<p align="center"><img src="c4/images/c4-component.png" alt="Diagrama de Componente C4 da API do Identity: o Funcionário e o Cliente da oficina apresentam os tokens ao componente Guards/Segurança, que encaminha às Autenticação e aos Usuários; o Work Order e a customer-auth chamam as Rotas Internas; os componentes usam Tokens e Hash, Cache e Código de Reset sobre o ElastiCache Valkey, Repositories sobre o PostgreSQL e o Gateway do Work Order; a Mensageria publica o outbox no SNS, que entrega notification.email.send à Lambda de notificação" width="100%"></p>
 
-A descrição de cada componente e dos elementos externos está em [`docs/c4/`](c4/README.md). Os níveis 1 e 2 do C4 (contexto e containers da solução) ficam no repositório de specs.
+A descrição de cada componente e dos elementos externos está em [`docs/c4/`](c4/README.md). Os níveis 1 e 2 do C4 (contexto e containers da solução) ficam no [`docs/c4/` do Work Order](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service/blob/main/docs/c4/README.md), o serviço de ordens de serviço.

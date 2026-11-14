@@ -24,7 +24,7 @@ Este repositório é o **Identity**, dono da identidade da solução: os usuári
 - **Login e refresh do funcionário**: emite o par de tokens JWT (JSON Web Token) assinado em RS256, o algoritmo de chave assimétrica: o access token, de 10 minutos, e o refresh token, de 7 dias. O Identity guarda as chaves privadas; os outros serviços validam o access com a chave pública, sem consultar o Identity.
 - **Redefinição de senha por código**: o `ADMIN` pede um código de 6 dígitos para um usuário, que chega por e-mail e vale 10 minutos e 5 tentativas; o código fica no Valkey (banco em memória compatível com Redis), não no PostgreSQL.
 - **Perfil do usuário autenticado**: `GET /api/me` e `PATCH /api/me/password`, com o token de funcionário ou com o token de cliente que a customer-auth, a função Lambda de login do cliente, emite. O perfil traz as empresas (clientes PJ) a que o usuário tem acesso, lidas no Work Order.
-- **Rotas internas**: o usuário por id, a criação idempotente do usuário de acesso de um cliente e a conferência de CPF e senha do cliente, na rede do cluster. São o contrato oferecido ao Work Order e à customer-auth; hoje nenhum dos dois as chama ainda, e a customer-auth ainda confere a credencial do cliente no banco do Work Order.
+- **Rotas internas**: o usuário por id, a criação idempotente do usuário de acesso de um cliente e a conferência de CPF e senha do cliente, na rede do cluster. O Work Order chama as duas primeiras, e a customer-auth, a função Lambda de login do cliente, chama a conferência de CPF e senha antes de emitir o token de cliente.
 - **E-mails de conta**: a senha inicial do funcionário, a senha inicial do cliente e o código de redefinição, publicados como mensagens `notification.email.send` no tópico SNS FIFO `oficina-events.fifo`; a Lambda de notificação, a função `oficina-mecanica-lambda-notification`, lê essas mensagens da fila SQS FIFO `notification.fifo` e envia o e-mail. O Identity não fala SMTP.
 
 A base é a mesma dos outros serviços NestJS da solução: Clean Architecture com regras de importação por camada no ESLint, logs JSON estruturados, OpenTelemetry, health checks, outbox e relay (a rotina que lê o outbox e publica no SNS), cache Valkey e cliente HTTP interno. O serviço só publica mensagens e não consome nenhuma fila. A imagem é publicada no Amazon ECR e implantada no Amazon EKS, no namespace `identity`, pelo próprio CD.
@@ -140,11 +140,11 @@ Clean Architecture com quatro camadas e dependências apontando só para dentro.
 | Autenticação | `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/password-reset-confirmations` | Sem token |
 | Usuários | `POST`, `GET /api/users`; `GET`, `PUT`, `PATCH`, `DELETE /api/users/:id`; `POST /api/users/:userId/password-resets` | Token de funcionário `ADMIN` |
 | Minha conta | `GET /api/me`, `PATCH /api/me/password` | Token de funcionário ou de cliente |
-| Internas (contrato para o Work Order) | `GET /internal/users/:id`, `POST /internal/customer-users` | Rede do cluster, sem token e fora do Swagger |
-| Internas (contrato para a customer-auth) | `POST /internal/customer-authentications` | Rede do cluster, sem token e fora do Swagger |
+| Internas (chamadas pelo Work Order) | `GET /internal/users/:id`, `POST /internal/customer-users` | Rede do cluster, sem token e fora do Swagger |
+| Internas (chamada pela customer-auth) | `POST /internal/customer-authentications` | Rede do cluster, sem token e fora do Swagger |
 | Saúde e documentação | `GET /api/health/live`, `GET /api/health/ready`, `/api/docs` e `/api/docs-json` | Sem token |
 
-No cluster, o Identity responde no listener 8081 do NLB interno (o Network Load Balancer que liga o API Gateway aos serviços). Hoje o API Gateway publica do Identity só `GET /health/identity` e `GET /docs/identity`; as rotas `/api/auth`, `/api/users` e `/api/me` do gateway ainda vão ao Work Order.
+No cluster, o Identity responde no listener 8081 do NLB interno (o Network Load Balancer que liga o API Gateway aos serviços). O API Gateway encaminha a ele `/api/auth/login` e `/api/auth/*`, `/api/users` e `/api/users/*` (salvo `/api/users/{userId}/customers`, que vai ao Work Order), `/api/me` e `/api/me/password`, além de `GET /health/identity` e `GET /docs/identity`; `/api/me/work-orders` e `/api/me/quotes` seguem para o Work Order.
 
 ➡️ Status, corpos, erros e perfil dos tokens em **[API](docs/api.md)**; chaves e janelas de revogação em **[Segurança](docs/security.md)**.
 
@@ -239,6 +239,7 @@ oficina-mecanica-identity-service/
 | [Banco de dados](docs/database.md) | Tabela `users`, outbox, usuários semeados e chaves do Valkey |
 | [Como executar localmente](docs/local-setup.md) | Setup, os três pares de chaves, variáveis de ambiente, seed e tabela de portas locais por contexto |
 | [Testes](docs/testing.md) | Unitários, E2E com Testcontainers, fixtures de contrato, Postman e Newman |
+| [Manual de demonstração da solução](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service/blob/main/docs/demo-manual.md) | Preparo do ambiente, fluxo completo da ordem de serviço, da abertura à entrega, pagamento no sandbox do Mercado Pago e falhas com compensação provocadas de fora, no work-order |
 | [CI/CD](docs/ci-cd.md) | Workflows de CI, CD, SAST e DAST |
 | [Modelo C4](docs/c4/README.md) | Componentes do serviço |
 | [Collection Postman](collections/identity-collection.json) e [environment](collections/identity-environment.json) | Health, Swagger, login e refresh, usuários, redefinição de senha, `/api/me` e rotas internas |
