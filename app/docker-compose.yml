@@ -59,7 +59,7 @@ services:
       CUSTOMER_JWT_PUBLIC_KEY: ${CUSTOMER_JWT_PUBLIC_KEY:?Informe a chave pública RS256 do token de cliente conforme docs/local-setup.md}
       CUSTOMER_JWT_ISSUER: ${CUSTOMER_JWT_ISSUER:-oficina-customer-auth}
       CUSTOMER_JWT_AUDIENCE: ${CUSTOMER_JWT_AUDIENCE:-oficina-api}
-      WORK_ORDER_SERVICE_URL: ${WORK_ORDER_SERVICE_URL:-http://host.docker.internal:3000}
+      WORK_ORDER_SERVICE_URL: http://host.docker.internal:3000
       AWS_REGION: us-east-1
       AWS_ENDPOINT_URL: http://localstack:4566
       AWS_ACCESS_KEY_ID: test
