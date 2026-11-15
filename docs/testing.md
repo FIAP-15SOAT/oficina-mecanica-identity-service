@@ -102,3 +102,13 @@ Importe os dois arquivos no Postman ou rode com Newman, o executor de collection
 # A partir da raiz do repositório: rodar a collection contra o API Gateway
 npx --yes newman run collections/identity-collection.json -e collections/identity-environment.json --env-var baseUrl=<URL do API Gateway>
 ```
+
+### Execução local
+
+A collection também roda contra o stack local, com a `baseUrl` `http://localhost:3001`. Localmente não há gateway, e a saúde e o contrato OpenAPI ficam em `/api/health/*` e `/api/docs-json`: rode as pastas a partir de **Autenticação**, que faz o login no próprio Identity. `GET /api/me` precisa do Work Order; para rodar sem ele, suba o stack com o stub de [Como executar localmente › Work Order](local-setup.md#work-order):
+
+```bash
+# A partir de app/: subir o stack com o stub do Work Order e rodar a collection sem as pastas do gateway
+docker compose -f docker-compose.yml -f docker-compose.dast.yml up -d --build --wait
+npx --yes newman run ../collections/identity-collection.json -e ../collections/identity-environment.json --env-var baseUrl=http://localhost:3001 --folder "Autenticação" --folder "Gestão de Usuários" --folder "Redefinição de Senha" --folder "Minha Conta" --folder "Remoção de Usuários"
+```
