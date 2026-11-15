@@ -1,10 +1,22 @@
 {
   "id": "identity-local",
-  "name": "Identity Local",
+  "name": "Identity · Local",
   "values": [
     {
       "key": "baseUrl",
-      "value": "https://<api-id>.execute-api.us-east-1.amazonaws.com",
+      "value": "http://localhost:3001",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "healthPath",
+      "value": "api/health/ready",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "openApiPath",
+      "value": "api/docs-json",
       "type": "default",
       "enabled": true
     },
