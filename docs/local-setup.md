@@ -59,6 +59,9 @@ Veja `app/.env.example`, que lista todas as variáveis que o código lê. As pri
 | `CACHE_TTL_SECONDS` | `43200` | TTL (tempo de vida) das entradas do cache, em segundos |
 | `ALLOWED_ORIGINS` | `http://localhost:3001` | Origens aceitas pelo CORS, o controle do navegador sobre quais sites podem chamar a API |
 | `LOG_LEVEL` | `info` | `fatal` a `trace` ou `silent` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | vazio | Endereço do coletor OTLP/HTTP (no cluster, o Datadog Agent); vazio deixa a telemetria desligada |
+| `OTEL_LOGS_EXPORTER`, `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE` | `none`, `delta` | O log sai só em stdout, nunca por OTLP; métricas em delta, como o Datadog espera |
+| `OTEL_EXPORTER_OTLP_TIMEOUT`, `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT`, `OTEL_EXPORTER_OTLP_METRICS_TIMEOUT`, `OTEL_LOG_LEVEL` | comentadas no `.env.example` | Prazos de exportação (5 s quando vazias) e nível dos diagnósticos do SDK, com teto em `warn` |
 
 Não há variável de fila: o serviço só publica.
 
