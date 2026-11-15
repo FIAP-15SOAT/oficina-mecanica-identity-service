@@ -4,7 +4,7 @@
   "values": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3001",
+      "value": "https://<api-id>.execute-api.us-east-1.amazonaws.com",
       "type": "default",
       "enabled": true
     },

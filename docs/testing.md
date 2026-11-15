@@ -84,23 +84,21 @@ O `engines` do `package.json` exige `node >=24.9`, e o CI roda no Node 24.
 
 ## Postman e Newman
 
-Em [`collections/`](../collections) há a collection `identity-collection.json` e o environment `identity-environment.json` (Postman v2.1). A `baseUrl` é única: `http://localhost:3001`. As 58 requisições rodam em ordem, com testes em cada uma, e guardam no environment o token e os ids que as seguintes usam:
+Em [`collections/`](../collections) há a collection `identity-collection.json` e o environment `identity-environment.json` (Postman v2.1). A collection roda contra o API Gateway, a porta pública da solução, que encaminha cada prefixo de rota ao serviço dono. No gateway, `/api/health/*` e `/api/docs*` são do Work Order: por isso a saúde e o documento OpenAPI do Identity ficam em `/health/identity` e `/docs/identity`. As rotas `/internal/...` não passam pelo gateway e não estão na collection: os testes E2E e as fixtures de contrato as cobrem. A `baseUrl` é a URL do API Gateway, que muda a cada subida do ambiente; o [manual de demonstração](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service/blob/main/docs/demo-manual.md#url-pública-e-variáveis) mostra como lê-la. As 46 requisições rodam em ordem, com testes em cada uma, e guardam no environment o token e os ids que as seguintes usam:
 
 | Pasta | O que cobre |
 | --- | --- |
-| Health | Vivacidade e prontidão |
-| Swagger | UI e contrato OpenAPI, que publica as rotas públicas e não publica as internas |
+| Health | A prontidão do Identity pelo gateway (`GET /health/identity`) |
+| Swagger | O contrato OpenAPI pelo gateway (`GET /docs/identity`), que publica as rotas públicas e não publica as internas |
 | Autenticação | Login do ADMIN semeado com o access decodificado (RS256, `kid`, `typ`, `iss`, `aud`, 10 min) e o refresh (7 dias), recusas do login (senha errada, usuário de cliente, corpo vazio) e do refresh |
 | Gestão de Usuários | Criação de atendente e de mecânico, e-mail repetido, CPF inválido, listagem com filtro, detalhe, atualização, ativação e desativação, validações do corpo |
 | Redefinição de Senha | Pedido do código, id inexistente, sem token, confirmação com código errado, senha fraca e código curto |
 | Minha Conta | Perfil do ADMIN com `customers` só PJ, sem token, troca de senha com senha atual errada, igual à atual e fraca, e uma troca seguida da volta à senha do seed |
-| Rotas Internas | Usuário por id (inclusive o de cliente, com `role` nulo), usuário de acesso de CPF já cadastrado, e-mail de outra pessoa, CPF inválido e credencial do cliente (aceita, senha errada e CPF sem usuário com o mesmo corpo, corpo sem CPF) |
 | Remoção de Usuários | Exclui o atendente e o mecânico criados, de modo que a collection pode rodar de novo no mesmo banco |
 
-`GET /api/me` precisa do Work Order; para rodar a collection sem ele, suba o stack com o stub de [Como executar localmente › Work Order](local-setup.md#work-order). Importe os dois arquivos no Postman ou rode com Newman, o executor de collections do Postman na linha de comando:
+Importe os dois arquivos no Postman ou rode com Newman, o executor de collections do Postman na linha de comando, com o ambiente no ar:
 
 ```bash
-# A partir de app/: subir o stack com o stub do Work Order e rodar a collection
-docker compose -f docker-compose.yml -f docker-compose.dast.yml up -d --build --wait
-npx --yes newman run ../collections/identity-collection.json -e ../collections/identity-environment.json
+# A partir da raiz do repositório: rodar a collection contra o API Gateway
+npx --yes newman run collections/identity-collection.json -e collections/identity-environment.json --env-var baseUrl=<URL do API Gateway>
 ```

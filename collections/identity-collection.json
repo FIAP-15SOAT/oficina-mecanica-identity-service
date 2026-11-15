@@ -19,80 +19,37 @@
       "name": "Health",
       "item": [
         {
-          "name": "Vivacidade",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/identity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "identity"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('corpo ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Corpo ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
                 ]
               }
             }
           ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/health/live",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "health",
-                "live"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "Prontidão",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('corpo ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/health/ready",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "health",
-                "ready"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
+          "name": "Prontidão do identity pelo API Gateway"
         }
       ]
     },
@@ -100,44 +57,24 @@
       "name": "Swagger",
       "item": [
         {
-          "name": "Swagger UI",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('é HTML', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/html'));"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "text/html"
-              }
-            ],
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/docs",
+              "raw": "{{baseUrl}}/docs/identity",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "api",
-                "docs"
+                "docs",
+                "identity"
               ]
             },
             "auth": {
               "type": "noauth"
             }
-          }
-        },
-        {
-          "name": "Contrato OpenAPI (JSON)",
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -151,28 +88,7 @@
               }
             }
           ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/docs-json",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "docs-json"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
+          "name": "Documento OpenAPI pelo API Gateway"
         }
       ]
     },
@@ -2047,475 +1963,6 @@
                   "language": "json"
                 }
               }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Rotas Internas",
-      "item": [
-        {
-          "name": "TC-INT-01 — Usuário por id (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('contrato de GET /internal/users/:id', () => { const data = pm.response.json().data; pm.expect(data).to.have.all.keys('id', 'name', 'email', 'role', 'isActive'); pm.expect(data.role).to.eql('ADMIN'); pm.expect(data.isActive).to.be.true; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/users/{{adminUserId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "users",
-                "{{adminUserId}}"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-02 — Usuário de cliente por id, com papel nulo (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('role nulo', () => pm.expect(pm.response.json().data.role).to.be.null);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/users/{{customerUserId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "users",
-                "{{customerUserId}}"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-03 — Usuário por id inexistente (404)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 404', () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/users/00000000-0000-0000-0000-000000000000",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "users",
-                "00000000-0000-0000-0000-000000000000"
-              ]
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-04 — Usuário de acesso de CPF já cadastrado (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('reaproveita o usuário pelo CPF', () => { const data = pm.response.json().data; pm.expect(data.userId).to.eql(pm.environment.get('customerUserId')); pm.expect(data.created).to.be.false; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-users"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"João da Silva\",\n  \"email\": \"{{customerEmail}}\",\n  \"cpf\": \"{{customerCpf}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-05 — Usuário de acesso com e-mail de outra pessoa (409)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 409', () => pm.response.to.have.status(409));",
-                  "pm.test('mensagem exata', () => pm.expect(pm.response.json().message).to.eql(\"O e-mail informado já pertence a outro usuário. Verifique o cadastro do cliente\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-users"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"João da Silva\",\n  \"email\": \"{{adminEmail}}\",\n  \"cpf\": \"{{customerCpf}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-06 — Usuário de acesso com CPF inválido (422)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 422', () => pm.response.to.have.status(422));",
-                  "pm.test('mensagem exata', () => pm.expect(pm.response.json().message).to.eql(\"CPF inválido\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-users"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Cliente Teste\",\n  \"email\": \"cliente.{{runId}}@email.com\",\n  \"cpf\": \"11111111111\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-07 — Credencial do cliente válida (200)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('devolve o userId', () => pm.expect(pm.response.json().data.userId).to.eql(pm.environment.get('customerUserId')));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-authentications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-authentications"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cpf\": \"{{customerCpf}}\",\n  \"password\": \"{{customerPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-08 — Credencial do cliente com senha errada (401)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 401', () => pm.response.to.have.status(401));",
-                  "pm.test('mensagem exata', () => pm.expect(pm.response.json().message).to.eql(\"Credenciais inválidas\"));",
-                  "pm.environment.set('customerAuthRefusal', pm.response.text());"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-authentications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-authentications"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cpf\": \"{{customerCpf}}\",\n  \"password\": \"SenhaErrada@123\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-09 — Credencial do cliente com CPF sem usuário (401, mesmo corpo)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 401', () => pm.response.to.have.status(401));",
-                  "pm.test('mesmo corpo da senha errada', () => pm.expect(pm.response.text()).to.eql(pm.environment.get('customerAuthRefusal')));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-authentications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-authentications"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"cpf\": \"52998224725\",\n  \"password\": \"{{customerPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
-            }
-          }
-        },
-        {
-          "name": "TC-INT-10 — Credencial do cliente sem CPF (400)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('status 400', () => pm.response.to.have.status(400));",
-                  "pm.test('mensagem', () => pm.expect(JSON.stringify(pm.response.json().message)).to.include(\"O CPF é obrigatório\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/internal/customer-authentications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "internal",
-                "customer-authentications"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"{{customerPassword}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "auth": {
-              "type": "noauth"
             }
           }
         }
