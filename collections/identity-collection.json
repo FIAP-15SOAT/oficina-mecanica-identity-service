@@ -23,13 +23,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/health/identity",
+              "raw": "{{baseUrl}}/{{healthPath}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "health",
-                "identity"
+                "{{healthPath}}"
               ]
             },
             "auth": {
@@ -49,7 +48,7 @@
               }
             }
           ],
-          "name": "Prontidão do identity pelo API Gateway"
+          "name": "Prontidão do identity"
         }
       ]
     },
@@ -61,13 +60,12 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/docs/identity",
+              "raw": "{{baseUrl}}/{{openApiPath}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "docs",
-                "identity"
+                "{{openApiPath}}"
               ]
             },
             "auth": {
@@ -88,7 +86,7 @@
               }
             }
           ],
-          "name": "Documento OpenAPI pelo API Gateway"
+          "name": "Documento OpenAPI"
         }
       ]
     },

@@ -242,7 +242,7 @@ oficina-mecanica-identity-service/
 | [Manual de demonstração da solução](https://github.com/FIAP-15SOAT/oficina-mecanica-work-order-service/blob/main/docs/demo-manual.md) | Preparo do ambiente, fluxo completo da ordem de serviço, da abertura à entrega, pagamento no sandbox do Mercado Pago e falhas com compensação provocadas de fora, no work-order |
 | [CI/CD](docs/ci-cd.md) | Workflows de CI, CD, SAST e DAST |
 | [Modelo C4](docs/c4/README.md) | Componentes do serviço |
-| [Collection Postman](collections/identity-collection.json) e [environment](collections/identity-environment.json) | Health, Swagger, login e refresh, usuários, redefinição de senha e `/api/me`, pelo API Gateway |
+| [Collection Postman](collections/identity-collection.json) e environments [local](collections/identity-environment.json) e [do gateway](collections/identity-gateway-environment.json) | Health, Swagger, login e refresh, usuários, redefinição de senha e `/api/me` |
 | Swagger | `http://localhost:3001/api/docs` (local) e `http://localhost:3001/api/docs-json` |
 | [SonarQube Cloud](https://sonarcloud.io/project/overview?id=FIAP-15SOAT_oficina-mecanica-identity-service) | Projeto `FIAP-15SOAT_oficina-mecanica-identity-service` |
 
