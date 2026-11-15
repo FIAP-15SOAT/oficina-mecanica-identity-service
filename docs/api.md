@@ -16,7 +16,7 @@
 ## Acesso
 
 - **Swagger:** `http://localhost:3001/api/docs`
-- **Base URL:** `http://localhost:3001/api` (local). No cluster, o Identity responde no listener `8081` do NLB interno, o Network Load Balancer que liga o API Gateway aos serviços. Hoje o API Gateway publica do Identity só `GET /health/identity` e `GET /docs/identity`; as rotas `/api/auth`, `/api/users` e `/api/me` do gateway ainda vão ao Work Order.
+- **Base URL:** `http://localhost:3001/api` (local). No cluster, o Identity responde no listener `8081` do NLB interno, o Network Load Balancer que liga o API Gateway aos serviços. O API Gateway encaminha a ele `/api/auth/login` e `/api/auth/*`, `/api/users` e `/api/users/*` (salvo `/api/users/{userId}/customers`, que vai ao Work Order), `/api/me` e `/api/me/password`, além de `GET /health/identity` e `GET /docs/identity`; `/api/me/work-orders` e `/api/me/quotes` seguem para o Work Order.
 
 Toda rota de `/api` exige `Authorization: Bearer <token>`, salvo as marcadas como públicas abaixo. O token de **funcionário** é o access token emitido por `POST /api/auth/login`; o token de **cliente** é o que a customer-auth, a função Lambda de login do cliente, emite, e só vale em `/api/me`. Os dois são validados localmente, só pela assinatura e pelos claims. Token ausente, expirado, assinado por outra chave ou do tipo errado para a rota responde **401** com `Token de autenticação inválido ou ausente`; papel sem permissão responde **403**.
 
@@ -100,9 +100,9 @@ As duas rotas aceitam o token de funcionário e o token de cliente.
 
 ## Rotas internas (`/internal`)
 
-Fora do prefixo `/api`, sem token, fora do Swagger e fora do API Gateway: só respondem pela rede do cluster. São o contrato que o Identity oferece ao Work Order e à customer-auth; hoje nenhum dos dois as chama ainda, e a customer-auth ainda confere a credencial do cliente no banco do Work Order. Os corpos de sucesso estão versionados como fixtures de contrato em [`app/test/contracts/`](../app/test/contracts).
+Fora do prefixo `/api`, sem token, fora do Swagger e fora do API Gateway: só respondem pela rede do cluster. O Work Order e a customer-auth, a função Lambda de login do cliente, chamam as rotas da tabela abaixo. Os corpos de sucesso estão versionados como fixtures de contrato em [`app/test/contracts/`](../app/test/contracts).
 
-| Método | Rota | Consumidor do contrato | Respostas |
+| Método | Rota | Quem chama | Respostas |
 | --- | --- | --- | --- |
 | GET | `/internal/users/:id` | Work Order | 200, 400, 404 |
 | POST | `/internal/customer-users` | Work Order | 200, 400, 409, 422 |

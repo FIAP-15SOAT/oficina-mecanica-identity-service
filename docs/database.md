@@ -4,10 +4,17 @@ PostgreSQL 18, só deste serviço, definido em [`app/prisma/schema.prisma`](../a
 
 ## Índice
 
+- [Diagrama entidade-relacionamento](#diagrama-entidade-relacionamento)
 - [Tabelas](#tabelas)
 - [Regras garantidas pelo banco e pelo acesso](#regras-garantidas-pelo-banco-e-pelo-acesso)
 - [Usuários semeados](#usuários-semeados)
 - [Chaves do Valkey](#chaves-do-valkey)
+
+## Diagrama entidade-relacionamento
+
+<p align="center"><img src="diagrams/database-er.png" alt="Diagrama entidade-relacionamento dos 2 modelos do schema Prisma: User (tabela users) e OutboxMessage (tabela outbox); com tipos reais do Postgres e chaves primárias e únicas; as duas tabelas não têm relação entre si, e outbox.work_order_id guarda o id de uma ordem de serviço do Work Order, sem chave estrangeira" width="100%"></p>
+
+As duas tabelas não se relacionam. `outbox.work_order_id` guarda o id de uma ordem de serviço do Work Order, o serviço da solução dono das ordens de serviço, sem chave estrangeira.
 
 ## Tabelas
 
