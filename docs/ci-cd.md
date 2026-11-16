@@ -36,6 +36,8 @@ Todos os jobs rodam no environment `production`, com `concurrency: production` s
 
 Roda os testes unitários com cobertura e envia o lcov unitário (o relatório de cobertura no formato LCOV) ao projeto `FIAP-15SOAT_oficina-mecanica-identity-service` no SonarQube Cloud, esperando o resultado do Quality Gate, o conjunto de critérios que aprova ou reprova a análise (`sonar.qualitygate.wait=true`).
 
+O SAST tem workflow próprio, disparado pelo Pull Request para a `main` e pelo `push` na `main`, porque o [plano gratuito do SonarQube Cloud](https://docs.sonarsource.com/sonarqube-cloud/administering-sonarcloud/managing-subscription/subscription-plans) analisa só a branch principal e os Pull Requests para ela, nunca as branches de trabalho (`feature/**` e `fix/**`) em que o CI roda. No Pull Request, a análise aponta só os problemas que o PR introduz em relação à `main`; no `push` na `main`, atualiza a análise da branch principal, que é a referência dessa comparação. O PR é aberto pelo GitHub App do bot, e não pelo `GITHUB_TOKEN` do workflow, porque um PR criado com o `GITHUB_TOKEN` não dispara outros workflows: assim o SAST roda no PR desde o primeiro push.
+
 ## DAST
 
 ![DAST](diagrams/dast-workflow.png)
@@ -49,6 +51,8 @@ Os passos são de um job só, `zap-scan`:
 5. o OWASP ZAP 2.17 varre o contrato em `http://api:3000/api/docs-json`, pela rede do Compose, duas vezes: com o token do ADMIN (relatório `zap-report`) e com o token de cliente, que exercita o caminho do token de cliente em `/api/me` (relatório `zap-report-customer`), as duas com as regras de `.zap/rules.tsv`.
 
 Os relatórios HTML e JSON vão como artefatos e a stack é derrubada no fim.
+
+O DAST dispara no Pull Request para a `main`, para escanear o candidato ao merge, e por `workflow_dispatch` (execução manual). Não roda no `push` de branch de trabalho, porque subir a stack inteira e fazer um scan ativo a cada commit seria caro e o CI já dá o retorno rápido, nem no `push` na `main`, porque a `main` só recebe código por PR e o scan do PR já cobriu esse código. Um alerta fora das regras de `.zap/rules.tsv` falha o job, e como o `OWASP ZAP API Scan` é check obrigatório da `main`, bloqueia o merge.
 
 ## Ruleset da `main`
 
